@@ -1,9 +1,10 @@
 <?php declare(strict_types = 1);
 namespace ASTConverter\Tests;
+use ASTConverter\ASTConverter;
+
+require_once __DIR__ . '/../../src/util.php';
 
 class TestConversion extends \PHPUnit\Framework\TestCase {
-    const CURRENT_VERSION = 40;
-
     protected function _scanSourceDirForPHP(string $sourceDir) : array {
         $files = scandir($sourceDir);
         if (!$files) {
@@ -32,15 +33,46 @@ class TestConversion extends \PHPUnit\Framework\TestCase {
     }
 
     /** @dataProvider astValidFileExampleProvider */
-    public function testSomething(string $fileName) {
+    public function testFallbackFromParser(string $fileName) {
         $contents = file_get_contents($fileName);
         if ($contents === false) {
             $this->fail("Failed to read $fileName");
         }
-        $ast = \ast\parse_code($contents, self::CURRENT_VERSION);
+        $ast = \ast\parse_code($contents, ASTConverter::AST_VERSION);
         $this->assertInstanceOf('\ast\Node', $ast, 'Examples must be syntactically valid PHP parseable by php-ast');
-        $fallback_ast = \ASTConverter\ASTConverter::ast_parse_code_fallback($contents, self::CURRENT_VERSION);
+        $fallback_ast = \ASTConverter\ASTConverter::ast_parse_code_fallback($contents, ASTConverter::AST_VERSION);
         $this->assertInstanceOf('\ast\Node', $fallback_ast, 'The fallback must also return a tree of php-ast nodes');
-        $this->assertSame(var_export($fallback_ast, true), var_export($ast, true), 'The fallback must also return a tree of php-ast nodes');
+        $fallbackASTRepr = var_export($fallback_ast, true);
+        $originalASTRepr = var_export($ast, true);
+
+        if ($fallbackASTRepr !== $originalASTRepr) {
+            $dump = 'could not dump';
+            $nodeDumper = new \PhpParser\NodeDumper();
+            $phpParserNode = ASTConverter::phpparser_parse($contents);
+            try {
+                $dump = $nodeDumper->dump($phpParserNode);
+            } catch (\PhpParser\Error $e) {
+            }
+            $original_ast_dump = \ast_dump($ast);
+            $parser_export = var_export($phpParserNode, true);
+            $this->assertSame($originalASTRepr, $fallbackASTRepr,  <<<EOT
+The fallback must return the same tree of php-ast nodes
+File: $fileName
+Code:
+$contents
+
+Original AST:
+$original_ast_dump
+
+PHP-Parser(simplified):
+$dump
+EOT
+
+            /*
+PHP-Parser(unsimplified):
+$parser_export
+             */
+);
+        }
     }
 }
