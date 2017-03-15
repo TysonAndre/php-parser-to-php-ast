@@ -83,18 +83,40 @@ class ASTConverter {
             return self::_ast_node_unary_op(\ast\flags\UNARY_PLUS, self::_phpparser_node_to_ast_node($parserNode->expr), $startLine);
         case 'PhpParser\Node\Expr\Variable':
             return self::_ast_node_variable($parserNode->name, $startLine);
+        case 'PhpParser\Node\Name':
+            return self::_ast_node_name(
+                implode('\\', $parserNode->parts),
+                $startLine
+            );
+        case 'PhpParser\Node\Param':
+            return self::_ast_node_param(
+                $parserNode->byRef,
+                $parserNode->variadic,
+                self::_phpparser_type_to_ast_node($parserNode->type, $startLine),
+                $parserNode->name,
+                $parserNode->default,
+                $startLine
+            );
         case 'PhpParser\Node\Scalar\LNumber':
             return (int)$parserNode->value;
         case 'PhpParser\Node\Stmt\Class_':
             return self::_ast_stmt_class($parserNode->name, $parserNode->extends, $parserNode->implements, $parserNode->stmts, $startLine);
         case 'PhpParser\Node\Stmt\Function_':
             $startLine = $startLine;
+            $returnType = $parserNode->returnType;
+            $returnTypeLine = $startLine;
+            if ($returnType !== null) {
+                if ($returnType instanceof \PHPParser\Node\Name) {
+                    $returnTypeLine = $returnType->getAttribute('startLine');
+                }
+            }
+            $astReturnType = self::_phpparser_type_to_ast_node($returnType, $returnTypeLine);
+
             return self::_ast_decl_function(
                 $parserNode->byRef,
                 $parserNode->name,
                 self::_phpparser_params_to_ast_params($parserNode->params, $startLine),
                 null,  // uses
-                $parserNode->returnType,
                 self::_phpparser_stmtlist_to_ast_node($parserNode->stmts, $startLine),
                 $startLine
             );
@@ -174,6 +196,83 @@ class ASTConverter {
         return $node;
     }
 
+    /**
+     * @param \PHPParser\Node\Name|string|null $type
+     * @return \ast\Node|null
+     */
+    private static function _phpparser_type_to_ast_node($type, int $line) {
+        if (is_null($type)) {
+            return $type;
+        }
+        if (is_string($type)) {
+            switch(strtolower($type)) {
+            case 'null':
+                $flags = \ast\flags\TYPE_NULL; break;
+            case 'bool':
+                $flags = \ast\flags\TYPE_BOOL; break;
+            case 'long':
+                $flags = \ast\flags\TYPE_LONG; break;
+            case 'float':
+                $flags = \ast\flags\TYPE_DOUBLE; break;
+            case 'string':
+                $flags = \ast\flags\TYPE_STRING; break;
+            case 'array':
+                $flags = \ast\flags\TYPE_ARRAY; break;
+            case 'object':
+                $flags = \ast\flags\TYPE_OBJECT; break;
+            case 'callable':
+                $flags = \ast\flags\TYPE_CALLABLE; break;
+            case 'void':
+                $flags = \ast\flags\TYPE_VOID; break;
+            case 'iterable':
+                $flags = \ast\flags\TYPE_ITERABLE; break;
+            default:
+                $node = new \ast\Node();
+                $node->kind = \ast\AST_NAME;
+                $node->flags = substr($type, 0, 1) === '\\' ? \ast\flags\NAME_FQ : \ast\flags\NAME_NOT_FQ;  // FIXME wrong.
+                $node->lineno = $line;
+                $node->children = [
+                    'name' => $type,
+                ];
+                return $node;
+            }
+            $node = new \ast\Node();
+            $node->kind = \ast\AST_TYPE;
+            $node->flags = $flags;
+            $node->lineno = $line;
+            $node->children = [];
+            return $node;
+        }
+        return self::_phpparser_node_to_ast_node($type);
+    }
+
+    /**
+     * @param bool $byRef
+     * @param \ast\Node|null $type
+     */
+    private static function _ast_node_param(bool $byRef, $variadic, $type, $name, $default, int $line) : \ast\Node{
+        $node = new \ast\Node;
+        $node->kind = \ast\AST_PARAM;
+        $node->flags = 0;
+        $node->lineno = $line;
+        $node->children = [
+            'type' => $type,
+            'name' => $name,
+            'default' => $default,
+        ];
+
+        return $node;
+    }
+
+    private static function _ast_node_name(string $name, int $line) : \ast\Node {
+        $node = new \ast\Node;
+        $node->kind = \ast\AST_NAME;
+        $node->flags = 0;
+        $node->lineno = $line;
+        $node->children = ['name' => $name];
+        return $node;
+    }
+
     private static function _ast_node_variable($expr, int $line) : \ast\Node {
         if ($expr instanceof \PhpParser\Node) {
             $expr = self::_phpparser_node_to_ast_node($expr);
@@ -181,15 +280,15 @@ class ASTConverter {
         $node = new \ast\Node;
         $node->kind = \ast\AST_VAR;
         $node->flags = 0;
-        $node->children = ['name' => $expr];
         $node->lineno = $line;
+        $node->children = ['name' => $expr];
         return $node;
     }
 
     private static function _phpparser_params_to_ast_params(array $parserParams, int $line) : \ast\Node {
         $newParams = [];
         foreach ($parserParams as $parserNode) {
-            $newParams[] = self::_ast_stub($parserNode);
+            $newParams[] = self::_phpparser_node_to_ast_node($parserNode);
         }
         $newParamsNode = new \ast\Node();
         $newParamsNode->kind = \ast\AST_PARAM_LIST;
