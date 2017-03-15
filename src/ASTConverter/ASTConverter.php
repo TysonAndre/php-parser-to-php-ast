@@ -101,6 +101,7 @@ class ASTConverter {
         case 'PhpParser\Node\Stmt\GroupUse':
             return self::_ast_stmt_group_use(
                 $parserNode->type,
+                implode('\\', $parserNode->prefix->parts ?? []),
                 self::_phpparser_use_list_to_ast_use_list($parserNode->uses),
                 $startLine
             );
@@ -113,7 +114,7 @@ class ASTConverter {
             return self::_ast_node_try(
                 self::_phpparser_stmtlist_to_ast_node([]), // $parserNode->try
                 self::_phpparser_catchlist_to_ast_catchlist($parserNode->catches),
-                isset($parserNode->finally) ? self::_phpparser_stmtlist_to_ast_node($parserNode->finally) : null,
+                isset($parserNode->finally) ? self::_phpparser_stmtlist_to_ast_node([$parserNode->finally]) : null,
                 $startLine
             );
         case 'PhpParser\Node\Stmt\Use_':
@@ -256,27 +257,60 @@ class ASTConverter {
     }
 
     private static function _phpparser_use_list_to_ast_use_list(array $uses) : array {
-        /*$astUses = [];
+        $astUses = [];
         foreach ($uses as $use) {
-        }*/
-        return $uses;
+            $astUse = new \ast\Node();
+            $astUse->kind = \ast\AST_USE_ELEM;
+            $astUse->flags = self::_phpparser_use_type_to_ast_flags($use->type);  // FIXME
+            $astUse->lineno = $use->getAttribute('startLine');
+            // ast doesn't fill in an alias if it's identical to the real name,
+            // but phpparser does?
+            $name = implode('\\', $use->name->parts);
+            $alias = $use->alias;
+            $astUse->children = [
+                'name' => $name,
+                'alias' => $alias !== $name ? $alias : null,
+            ];
+            $astUses[] = $astUse;
+        }
+        return $astUses;
+    }
+
+    /**
+     * @param int $type
+     */
+    private static function _phpparser_use_type_to_ast_flags($type) : int {
+        switch($type) {
+        case \PHPParser\Node\Stmt\Use_::TYPE_NORMAL:
+            return \ast\flags\USE_NORMAL;
+        case \PHPParser\Node\Stmt\Use_::TYPE_FUNCTION:
+            return \ast\flags\USE_FUNCTION;
+        case \PHPParser\Node\Stmt\Use_::TYPE_CONSTANT:
+            return \ast\flags\USE_CONST;
+        case \PHPParser\Node\Stmt\Use_::TYPE_UNKNOWN:
+        default:
+            return 0;
+        }
     }
 
     private static function _ast_stmt_use($type, array $uses, int $line) : \ast\Node{
         $node = new \ast\Node();
         $node->kind = \ast\AST_USE;
-        $node->flags = $type;  // FIXME
+        $node->flags = self::_phpparser_use_type_to_ast_flags($type);
         $node->lineno = $line;
         $node->children = $uses;
         return $node;
     }
 
-    private static function _ast_stmt_group_use($type, array $uses, int $line) : \ast\Node{
+    private static function _ast_stmt_group_use($type, $prefix, array $uses, int $line) : \ast\Node{
         $node = new \ast\Node();
         $node->kind = \ast\AST_GROUP_USE;
-        $node->flags = $type;  // FIXME
+        $node->flags = self::_phpparser_use_type_to_ast_flags($type);
         $node->lineno = $line;
-        $node->children = $uses;
+        $node->children = [
+            'prefix' => $prefix,
+            'uses' => self::_ast_stmt_use(0, $uses, $line),
+        ];
         return $node;
     }
 
