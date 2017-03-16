@@ -47,7 +47,10 @@ class TestConversion extends \PHPUnit\Framework\TestCase {
 
         if ($fallbackASTRepr !== $originalASTRepr) {
             $dump = 'could not dump';
-            $nodeDumper = new \PhpParser\NodeDumper();
+            $nodeDumper = new \PhpParser\NodeDumper([
+                'dumpComments' => true,
+                'dumpPositions' => true,
+            ]);
             $phpParserNode = ASTConverter::phpparser_parse($contents);
             try {
                 $dump = $nodeDumper->dump($phpParserNode);
