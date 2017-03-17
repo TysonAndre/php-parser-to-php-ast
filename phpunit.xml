@@ -1,6 +1,6 @@
 <phpunit bootstrap="src/ASTConverter/Bootstrap.php">
     <testsuites>
-        <testsuite name="ConverterTest">
+        <testsuite name="ConverterTests">
             <directory>tests</directory>
         </testsuite>
     </testsuites>

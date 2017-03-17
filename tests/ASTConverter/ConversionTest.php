@@ -4,7 +4,7 @@ use ASTConverter\ASTConverter;
 
 require_once __DIR__ . '/../../src/util.php';
 
-class TestConversion extends \PHPUnit\Framework\TestCase {
+class ConversionTest extends \PHPUnit\Framework\TestCase {
     protected function _scanSourceDirForPHP(string $sourceDir) : array {
         $files = scandir($sourceDir);
         if (!$files) {
