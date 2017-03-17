@@ -210,6 +210,13 @@ class ASTConverter {
             ], $startLine);
         case 'PhpParser\Node\Expr\List_':
             return self::_phpparser_list_to_ast_list($n, $startLine);
+        case 'PhpParser\Node\Expr\MethodCall':
+            return self::_ast_node_method_call(
+                self::_phpparser_node_to_ast_node($n->var),
+                is_string($n->name) ? $n->name : self::_phpparser_node_to_ast_node($n->name),
+                self::_phpparser_arg_list_to_ast_arg_list($n->args, $startLine),
+                $startLine
+            );
         case 'PhpParser\Node\Expr\New_':
             return astnode(\ast\AST_NEW, 0, [
                 'class' => self::_phpparser_node_to_ast_node($n->class),
@@ -217,6 +224,13 @@ class ASTConverter {
             ], $startLine);
         case 'PhpParser\Node\Expr\PropertyFetch':
             return self::_phpparser_propertyfetch_to_ast_prop($n, $startLine);
+        case 'PhpParser\Node\Expr\StaticCall':
+            return self::_ast_node_static_call(
+                self::_phpparser_node_to_ast_node($n->class),
+                is_string($n->name) ? $n->name : self::_phpparser_node_to_ast_node($n->name),
+                self::_phpparser_arg_list_to_ast_arg_list($n->args, $startLine),
+                $startLine
+            );
         case 'PhpParser\Node\Expr\UnaryMinus':
             return self::_ast_node_unary_op(\ast\flags\UNARY_MINUS, self::_phpparser_node_to_ast_node($n->expr), $startLine);
         case 'PhpParser\Node\Expr\UnaryPlus':
@@ -571,7 +585,8 @@ class ASTConverter {
     private static function _ast_node_nullable_type(\ast\Node $type, int $line) {
         $node = new \ast\Node;
         $node->kind = \ast\AST_NULLABLE_TYPE;
-        $node->flags = 0;
+        // FIXME: Why is this a special case in php-ast? (e.g. nullable int has no flags on the nullable node)
+        $node->flags = ($type->kind === \ast\AST_TYPE && $type->flags === \ast\flags\TYPE_ARRAY) ? $type->flags : 0;
         $node->lineno = $line;
         $node->children = ['type' => $type];
         return $node;
@@ -1000,6 +1015,21 @@ class ASTConverter {
             $expr = astnode(\ast\AST_NAME, \ast\flags\NAME_FQ, ['name' => $expr], $startLine);
         }
         return astnode(\ast\AST_CALL, 0, ['expr' => $expr, 'args' => $args], $startLine);
+    }
+
+    private static function _ast_node_method_call($expr, $method, \ast\Node $args, int $startLine) : \ast\Node {
+        return astnode(\ast\AST_METHOD_CALL, 0, ['expr' => $expr, 'method' => $method, 'args' => $args], $startLine);
+    }
+
+    private static function _ast_node_static_call($class, $method, \ast\Node $args, int $startLine) : \ast\Node {
+        // TODO: is this applicable?
+        if (is_string($class)) {
+            if (substr($class, 0, 1) === '\\') {
+                $expr = substr($class, 1);
+            }
+            $class = astnode(\ast\AST_NAME, \ast\flags\NAME_FQ, ['name' => $class], $startLine);
+        }
+        return astnode(\ast\AST_STATIC_CALL, 0, ['class' => $class, 'method' => $method, 'args' => $args], $startLine);
     }
 
     private static function _extract_phpdoc_comment($comments) : ?string {
