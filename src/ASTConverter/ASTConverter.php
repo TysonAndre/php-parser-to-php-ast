@@ -110,17 +110,24 @@ class ASTConverter {
     }
 
     /**
+     * This returns an array of values mapping class names to the closures which converts them to a scalar or \ast\Node or \ast\Node\Decl
+     *
+     * Why not a switch? Switches are slow until php 7.2, and there are dozens of class names to handle.
+     *
+     * - In php <= 7.1, the interpreter would loop through all possible cases, and compare against the value one by one.
+     * - There are a lot of local variables to look at.
+     *
      * @return Closure[]
      */
     private static function _init_handle_map() : array {
-        return [
+        $closures = [
             'PhpParser\Node\Arg'                            => function(PhpParser\Node\Arg $n, int $startLine) {
                 return self::_phpparser_node_to_ast_node($n->value);
             },
             'PhpParser\Node\Expr\Array_'                    => function(PhpParser\Node\Expr\Array_ $n, int $startLine) {
                 return self::_phpparser_array_to_ast_array($n, $startLine);
             },
-            'PhpParser\Node\Expr\Assign'                    => function(PhpParser\Node\Expr\AssignOp\BitwiseAnd $n, int $startLine) : \ast\Node {
+            'PhpParser\Node\Expr\Assign'                    => function(PhpParser\Node\Expr\Assign $n, int $startLine) : ?\ast\Node {
                 return self::_ast_node_assign(
                     self::_phpparser_node_to_ast_node($n->var),
                     self::_phpparser_node_to_ast_node($n->expr),
@@ -131,7 +138,7 @@ class ASTConverter {
                 return self::_ast_node_assignop(\ast\flags\BINARY_BITWISE_AND, $n, $startLine);
             },
             'PhpParser\Node\Expr\AssignOp\BitwiseXor'       => function(PhpParser\Node\Expr\AssignOp\BitwiseXor $n, int $startLine) : \ast\Node {
-                return self::_ast_node_assignop(\ast\flags\BINARY_BITWISE_OR, $n, $startLine);
+                return self::_ast_node_assignop(\ast\flags\BINARY_BITWISE_XOR, $n, $startLine);
             },
             'PhpParser\Node\Expr\AssignOp\BitwiseOr'        => function(PhpParser\Node\Expr\AssignOp\BitwiseOr $n, int $startLine) : \ast\Node {
                 return self::_ast_node_assignop(\ast\flags\BINARY_BITWISE_OR, $n, $startLine);
@@ -230,7 +237,7 @@ class ASTConverter {
                 );
                 // FIXME: add a test of ClassConstFetch to php-ast
             },
-            'PhpParser\Node\Expr\ClassConstFetch' => function(PhpParser\Node\Expr\ClassConstFetch $n, int $startLine) : \ast\Node {
+            'PhpParser\Node\Expr\ClassConstFetch' => function(PhpParser\Node\Expr\ClassConstFetch $n, int $startLine) : ?\ast\Node {
                 return self::_phpparser_classconstfetch_to_ast_classconstfetch($n, $startLine);
             },
             'PhpParser\Node\Expr\ConstFetch' => function(PhpParser\Node\Expr\ConstFetch $n, int $startLine) : \ast\Node {
@@ -286,7 +293,7 @@ class ASTConverter {
                     'args' => self::_phpparser_arg_list_to_ast_arg_list($n->args, $startLine),
                 ], $startLine);
             },
-            'PhpParser\Node\Expr\PropertyFetch' => function(PhpParser\Node\Expr\PropertyFetch $n, int $startLine) : \ast\Node {
+            'PhpParser\Node\Expr\PropertyFetch' => function(PhpParser\Node\Expr\PropertyFetch $n, int $startLine) : ?\ast\Node {
                 return self::_phpparser_propertyfetch_to_ast_prop($n, $startLine);
             },
             'PhpParser\Node\Expr\StaticCall' => function(PhpParser\Node\Expr\StaticCall $n, int $startLine) : \ast\Node {
@@ -303,7 +310,7 @@ class ASTConverter {
             'PhpParser\Node\Expr\UnaryPlus' => function(PhpParser\Node\Expr\UnaryPlus $n, int $startLine) : \ast\Node {
                 return self::_ast_node_unary_op(\ast\flags\UNARY_PLUS, self::_phpparser_node_to_ast_node($n->expr), $startLine);
             },
-            'PhpParser\Node\Expr\Variable' => function(PhpParser\Node\Expr\Variable $n, int $startLine) : \ast\Node {
+            'PhpParser\Node\Expr\Variable' => function(PhpParser\Node\Expr\Variable $n, int $startLine) : ?\ast\Node {
                 return self::_ast_node_variable($n->name, $startLine);
             },
             /**
@@ -503,6 +510,11 @@ class ASTConverter {
                 );
             },
         ];
+
+        foreach ($closures as $key => $value) {
+            assert(class_exists($key), "Class $key should exist");
+        }
+        return $closures;
     }
 
     private static function _ast_node_try(
@@ -1155,8 +1167,7 @@ class ASTConverter {
         // return var_export($comments, true);
     }
 
-    private static function _phpparser_list_to_ast_list(PhpParser\Node $n, int $startLine) : \ast\Node {
-        assert($n instanceof PhpParser\Node\Expr\List_);
+    private static function _phpparser_list_to_ast_list(PhpParser\Node\Expr\List_ $n, int $startLine) : \ast\Node {
         $astItems = [];
         foreach ($n->items as $item) {
             if ($item === null) {
@@ -1171,8 +1182,7 @@ class ASTConverter {
         return astnode(\ast\AST_ARRAY, \ast\flags\ARRAY_SYNTAX_LIST, $astItems, $startLine);
     }
 
-    private static function _phpparser_array_to_ast_array(PhpParser\Node $n, int $startLine) : \ast\Node {
-        assert($n instanceof PhpParser\Node\Expr\Array_);
+    private static function _phpparser_array_to_ast_array(PhpParser\Node\Expr\Array_ $n, int $startLine) : \ast\Node {
         $astItems = [];
         foreach ($n->items as $item) {
             if ($item === null) {
@@ -1187,8 +1197,7 @@ class ASTConverter {
         return astnode(\ast\AST_ARRAY, \ast\flags\ARRAY_SYNTAX_SHORT, $astItems, $startLine);
     }
 
-    private static function _phpparser_propertyfetch_to_ast_prop(PhpParser\Node $n, int $startLine) : ?\ast\Node {
-        assert($n instanceof PhpParser\Node\Expr\PropertyFetch);
+    private static function _phpparser_propertyfetch_to_ast_prop(PhpParser\Node\Expr\PropertyFetch $n, int $startLine) : ?\ast\Node {
         $name = $n->name;
         if (is_object($name)) {
             $name = self::_phpparser_node_to_ast_node($name);
@@ -1206,8 +1215,7 @@ class ASTConverter {
         ], $startLine);
     }
 
-    private static function _phpparser_classconstfetch_to_ast_classconstfetch(PhpParser\Node $n, int $startLine) : ?\ast\Node {
-        assert($n instanceof PhpParser\Node\Expr\ClassConstFetch);
+    private static function _phpparser_classconstfetch_to_ast_classconstfetch(PhpParser\Node\Expr\ClassConstFetch $n, int $startLine) : ?\ast\Node {
         $name = $n->name;
         if (is_object($name)) {
             $name = self::_phpparser_node_to_ast_node($name);
