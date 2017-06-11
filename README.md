@@ -3,7 +3,9 @@ PHP-Parser to php-ast
 
 [![Build Status](https://travis-ci.org/TysonAndre/php-parser-to-php-ast.svg?branch=master)](https://travis-ci.org/TysonAndre/php-parser-to-php-ast)
 
-5 out of 28 tests are failing, and only due to line numbers being wrong in php-ast. This is fixed in php 7.1-dev (will be in 7.1.4)
+8 out of 41 tests are failing, and only due to namespace support and line numbers being slightly different in php-ast.
+
+- The test suite is not yet comprehensive.
 
 [Current Issues](https://github.com/TysonAndre/php-parser-to-php-ast/issues/)
 
@@ -23,6 +25,13 @@ Using it as an error-tolerant substitute for php-ast (e.g. for use in IDEs)
 - Omitting errors only handles some common cases that come up while editing a file.
 - Placeholders may change in the future.
 - [tests/ASTConverter/ErrorTolerantConversionTest.php](https://github.com/TysonAndre/php-parser-to-php-ast/blob/master/tests/ASTConverter/ErrorTolerantConversionTest.php)
+
+Running unit tests
+------------------
+
+To run unit tests, you must install [nikic/php-ast](https://github.com/nikic/php-ast)
+
+- Then run `vendor/bin/phpunit`
 
 Possible Future Enhancements
 ----------------------------
