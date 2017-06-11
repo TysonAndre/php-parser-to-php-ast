@@ -3,6 +3,12 @@ namespace ASTConverter;
 
 use PhpParser\ParserFactory;
 
+/**
+ * Source: https://github.com/TysonAndre/php-parser-to-php-ast
+ * Uses PhpParser to create an instance of \ast\Node.
+ * Useful if the php-ast extension isn't actually installed.
+ * @author Tyson Andre
+ */
 class ASTConverter {
     // The latest stable version of php-ast.
     // For something > 40, update the library's release.
@@ -522,7 +528,7 @@ class ASTConverter {
         if (is_null($type)) {
             return $type;
         }
-        if (is_string($type)) {
+        if (\is_string($type)) {
             switch(strtolower($type)) {
             case 'null':
                 $flags = \ast\flags\TYPE_NULL; break;
@@ -1008,7 +1014,7 @@ class ASTConverter {
     }
 
     private static function _ast_node_call($expr, $args, int $startLine) : \ast\Node{
-        if (is_string($expr)) {
+        if (\is_string($expr)) {
             if (substr($expr, 0, 1) === '\\') {
                 $expr = substr($expr, 1);
             }
@@ -1023,7 +1029,7 @@ class ASTConverter {
 
     private static function _ast_node_static_call($class, $method, \ast\Node $args, int $startLine) : \ast\Node {
         // TODO: is this applicable?
-        if (is_string($class)) {
+        if (\is_string($class)) {
             if (substr($class, 0, 1) === '\\') {
                 $expr = substr($class, 1);
             }
@@ -1033,10 +1039,10 @@ class ASTConverter {
     }
 
     private static function _extract_phpdoc_comment($comments) : ?string {
-        if (is_string($comments)) {
+        if (\is_string($comments)) {
             return $comments;
         }
-        if (count($comments) == 0) {
+        if ($comments === null || count($comments) === 0) {
             return null;
         }
         for ($i = count($comments) - 1; $i >= 0; $i--) {
@@ -1134,7 +1140,7 @@ function astnode(int $kind, int $flags, ?array $children, int $lineno, ?string $
     $node->flags = $flags;
     $node->lineno = $lineno;
     $node->children = $children;
-    if (is_string($docComment)) {
+    if (\is_string($docComment)) {
         $node->docComment = $docComment;
     }
     return $node;
