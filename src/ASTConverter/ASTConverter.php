@@ -88,12 +88,44 @@ class ASTConverter {
     }
 
     /**
+     * @param PHPParser\Node[] $exprs
+     */
+    private static function _phpparser_expr_list_to_expr_list(array $exprs, int $lineno) : \ast\Node {
+        $children = [];
+        foreach ($exprs as $expr) {
+            $childNode = self::_phpparser_node_to_ast_node($expr);
+            if (is_array($childNode)) {
+                // Echo_ returns multiple children.
+                foreach ($childNode as $childNodePart) {
+                    $children[] = $childNodePart;
+                }
+            } else if (!is_null($childNode)) {
+                $children[] = $childNode;
+            }
+        }
+        foreach ($exprs as $parserNode) {
+            $childNodeLine = sl($parserNode);
+            if ($childNodeLine > 0) {
+                $lineno = $childNodeLine;
+                break;
+            }
+        }
+        return astnode(
+            \ast\AST_EXPR_LIST,
+            0,
+            $children,
+            $lineno
+        );
+    }
+
+    /**
      * @param PhpParser\Node $n - The node from PHP-Parser
      * @return \ast\Node|\ast\Node[]|string|int|float|bool|null - whatever \ast\parse_code would return as the equivalent.
      * @suppress PhanUndeclaredProperty
      */
     private static final function _phpparser_node_to_ast_node($n) {
         if (!($n instanceof PhpParser\Node)) {
+            debug_print_backtrace(DEBUG_BACKTRACE_IGNORE_ARGS);
             throw new \InvalidArgumentException("Invalid type for node: " . (is_object($n) ? get_class($n) : gettype($n)));
         }
 
@@ -137,7 +169,16 @@ class ASTConverter {
                 return self::_ast_node_assign(
                     self::_phpparser_node_to_ast_node($n->var),
                     self::_phpparser_node_to_ast_node($n->expr),
-                    $startLine
+                    $startLine,
+                    false
+                );
+            },
+            'PhpParser\Node\Expr\AssignRef'                 => function(PhpParser\Node\Expr\AssignRef $n, int $startLine) : ?\ast\Node {
+                return self::_ast_node_assign(
+                    self::_phpparser_node_to_ast_node($n->var),
+                    self::_phpparser_node_to_ast_node($n->expr),
+                    $startLine,
+                    true
                 );
             },
             'PhpParser\Node\Expr\AssignOp\BitwiseAnd'       => function(PhpParser\Node\Expr\AssignOp\BitwiseAnd $n, int $startLine) : \ast\Node {
@@ -303,11 +344,17 @@ class ASTConverter {
             'PhpParser\Node\Expr\ClassConstFetch' => function(PhpParser\Node\Expr\ClassConstFetch $n, int $startLine) : ?\ast\Node {
                 return self::_phpparser_classconstfetch_to_ast_classconstfetch($n, $startLine);
             },
+            'PhpParser\Node\Expr\Clone_' => function(PhpParser\Node\Expr\Clone_ $n, int $startLine) : \ast\Node {
+                return astnode(\ast\AST_CLONE, 0, ['expr' => self::_phpparser_node_to_ast_node($n->expr)], $startLine);
+            },
             'PhpParser\Node\Expr\ConstFetch' => function(PhpParser\Node\Expr\ConstFetch $n, int $startLine) : \ast\Node {
                 return astnode(\ast\AST_CONST, 0, ['name' => self::_phpparser_node_to_ast_node($n->name)], $startLine);
             },
             'PhpParser\Node\Expr\ErrorSuppress' => function(PhpParser\Node\Expr\ErrorSuppress $n, int $startLine) : \ast\Node {
                 return self::_ast_node_unary_op(\ast\flags\UNARY_SILENCE, self::_phpparser_node_to_ast_node($n->expr), $startLine);
+            },
+            'PhpParser\Node\Expr\Empty_' => function(PhpParser\Node\Expr\Empty_ $n, int $startLine) : \ast\Node {
+                return astnode(\ast\AST_EMPTY, 0, ['expr' => self::_phpparser_node_to_ast_node($n->expr)], $startLine);
             },
             'PhpParser\Node\Expr\Eval_' => function(PhpParser\Node\Expr\Eval_ $n, int $startLine) : \ast\Node {
                 return self::_ast_node_eval(
@@ -382,6 +429,18 @@ class ASTConverter {
                     'args' => self::_phpparser_arg_list_to_ast_arg_list($n->args, $startLine),
                 ], $startLine);
             },
+            'PhpParser\Node\Expr\PreInc' => function(PhpParser\Node\Expr\PreInc $n, int $startLine) : \ast\Node {
+                return astnode(\ast\AST_PRE_INC, 0, ['var' => self::_phpparser_node_to_ast_node($n->var)], $startLine);
+            },
+            'PhpParser\Node\Expr\PreDec' => function(PhpParser\Node\Expr\PreDec $n, int $startLine) : \ast\Node {
+                return astnode(\ast\AST_PRE_DEC, 0, ['var' => self::_phpparser_node_to_ast_node($n->var)], $startLine);
+            },
+            'PhpParser\Node\Expr\PostInc' => function(PhpParser\Node\Expr\PostInc $n, int $startLine) : \ast\Node {
+                return astnode(\ast\AST_POST_INC, 0, ['var' => self::_phpparser_node_to_ast_node($n->var)], $startLine);
+            },
+            'PhpParser\Node\Expr\PostDec' => function(PhpParser\Node\Expr\PostDec $n, int $startLine) : \ast\Node {
+                return astnode(\ast\AST_POST_DEC, 0, ['var' => self::_phpparser_node_to_ast_node($n->var)], $startLine);
+            },
             'PhpParser\Node\Expr\Print_' => function(PhpParser\Node\Expr\Print_ $n, int $startLine) : \ast\Node {
                 return astnode(
                     \ast\AST_PRINT,
@@ -433,6 +492,17 @@ class ASTConverter {
             'PhpParser\Node\Expr\Variable' => function(PhpParser\Node\Expr\Variable $n, int $startLine) : ?\ast\Node {
                 return self::_ast_node_variable($n->name, $startLine);
             },
+            'PhpParser\Node\Expr\Yield_' => function(PhpParser\Node\Expr\Yield_ $n, int $startLine) : ?\ast\Node {
+                return astnode(
+                    \ast\AST_YIELD,
+                    0,
+                    [
+                        'value' => $n->value !== null ? self::_phpparser_node_to_ast_node($n->value) : null,
+                        'key'   => $n->key   !== null ? self::_phpparser_node_to_ast_node($n->key) : null,
+                    ],
+                    $startLine
+                );
+            },
             'PhpParser\Node\Name' => function(PhpParser\Node\Name $n, int $startLine) : \ast\Node {
                 return self::_ast_node_name(
                     self::_phpparser_name_to_string($n),
@@ -476,6 +546,9 @@ class ASTConverter {
             },
             'PhpParser\Node\Scalar\EncapsedStringPart' => function(PhpParser\Node\Scalar\EncapsedStringPart $n, int $startLine) : string {
                 return $n->value;
+            },
+            'PhpParser\Node\Scalar\DNumber' => function(PhpParser\Node\Scalar\DNumber $n, int $startLine) : float {
+                return (float)$n->value;
             },
             'PhpParser\Node\Scalar\LNumber' => function(PhpParser\Node\Scalar\LNumber $n, int $startLine) : int {
                 return (int)$n->value;
@@ -563,6 +636,13 @@ class ASTConverter {
                     $startLine
                 );
             },
+            'PhpParser\Node\Stmt\Do_' => function(PhpParser\Node\Stmt\Do_ $n, int $startLine) : \ast\Node {
+                return self::_ast_node_do_while(
+                    self::_phpparser_node_to_ast_node($n->cond),
+                    self::_phpparser_stmtlist_to_ast_node($n->stmts, $startLine),
+                    $startLine
+                );
+            },
             /**
              * @return \ast\Node|\ast\Node[]
              */
@@ -647,18 +727,27 @@ class ASTConverter {
                     self::_extract_phpdoc_comment($n->getAttribute('comments'))
                 );
             },
-            /**
-             * @suppress PhanDeprecatedProperty TODO: figure out alternative
-             */
+            'PhpParser\Node\Stmt\For_' => function(PhpParser\Node\Stmt\For_ $n, int $startLine) : \ast\Node {
+                return astnode(
+                    \ast\AST_FOR,
+                    0,
+                    [
+                        'init' => \count($n->init) > 0 ? self::_phpparser_expr_list_to_expr_list($n->init, $startLine) : null,
+                        'cond' => \count($n->cond) > 0 ? self::_phpparser_expr_list_to_expr_list($n->cond, $startLine) : null,
+                        'loop' => \count($n->loop) > 0 ? self::_phpparser_expr_list_to_expr_list($n->loop, $startLine) : null,
+                        'stmts' => self::_phpparser_stmtlist_to_ast_node($n->stmts ?? [], $startLine),
+                    ],
+                    $startLine
+                );
+            },
             'PhpParser\Node\Stmt\GroupUse' => function(PhpParser\Node\Stmt\GroupUse $n, int $startLine) : \ast\Node {
                 return self::_ast_stmt_group_use(
                     $n->type,
-                    implode('\\', $n->prefix->parts ?? []),
+                    self::_phpparser_name_to_string($n->prefix),
                     self::_phpparser_use_list_to_ast_use_list($n->uses),
                     $startLine
                 );
             },
-            /** @suppress PhanDeprecatedProperty */
             'PhpParser\Node\Stmt\Namespace_' => function(PhpParser\Node\Stmt\Namespace_ $n, int $startLine) : \ast\Node {
                 $nodeDumper = new \PhpParser\NodeDumper([
                     'dumpComments' => true,
@@ -668,7 +757,7 @@ class ASTConverter {
                     \ast\AST_NAMESPACE,
                     0,
                     [
-                        'name' => implode('\\', $n->name->parts ?? []),
+                        'name' => self::_phpparser_name_to_string($n->name),
                         'stmts' => isset($n->stmts) ? self::_phpparser_stmtlist_to_ast_node($n->stmts, $startLine) : null,
                     ],
                     $startLine
@@ -682,7 +771,7 @@ class ASTConverter {
                 return self::_phpparser_property_to_ast_node($n, $startLine);
             },
             'PhpParser\Node\Stmt\Return_' => function(PhpParser\Node\Stmt\Return_ $n, int $startLine) : \ast\Node {
-                return self::_ast_stmt_return(self::_phpparser_node_to_ast_node($n->expr), $startLine);
+                return self::_ast_stmt_return($n->expr !== null ? self::_phpparser_node_to_ast_node($n->expr) : null, $startLine);
             },
             /** @return \ast\Node|\ast\Node[] */
             'PhpParser\Node\Stmt\Static_' => function(PhpParser\Node\Stmt\Static_ $n, int $startLine) {
@@ -759,6 +848,14 @@ class ASTConverter {
                     isset($n->finally) ? self::_phpparser_stmtlist_to_ast_node($n->finally->stmts, sl($n->finally)) : null,
                     $startLine
                 );
+            },
+            /** @return \ast\Node|\ast\Node[] */
+            'PhpParser\Node\Stmt\Unset_' => function(PhpParser\Node\Stmt\Unset_ $n, int $startLine) {
+                $stmts = [];
+                foreach ($n->vars as $var) {
+                    $stmts[] = astnode(\ast\AST_UNSET, 0, ['var' => self::_phpparser_node_to_ast_node($var)], sl($var) ?: $startLine);
+                }
+                return \count($stmts) === 1 ? $stmts[0] : $stmts;
             },
             'PhpParser\Node\Stmt\Use_' => function(PhpParser\Node\Stmt\Use_ $n, int $startLine) : \ast\Node {
                 return self::_ast_stmt_use(
@@ -839,18 +936,30 @@ class ASTConverter {
     }
 
     private static function _ast_node_while($cond, $stmts, int $startLine) : \ast\Node {
-        $node = new \ast\Node();
-        $node->kind = \ast\AST_WHILE;
-        $node->lineno = $startLine;
-        $node->flags = 0;
-        $node->children = [
-            'cond' => $cond,
-            'stmts' => $stmts,
-        ];
-        return $node;
+        return astnode(
+            \ast\AST_WHILE,
+            0,
+            [
+                'cond' => $cond,
+                'stmts' => $stmts,
+            ],
+            $startLine
+        );
     }
 
-    private static function _ast_node_assign($var, $expr, int $line) : ?\ast\Node {
+    private static function _ast_node_do_while($cond, $stmts, int $startLine) : \ast\Node {
+        return astnode(
+            \ast\AST_DO_WHILE,
+            0,
+            [
+                'stmts' => $stmts,
+                'cond' => $cond,
+            ],
+            $startLine
+        );
+    }
+
+    private static function _ast_node_assign($var, $expr, int $line, bool $ref) : ?\ast\Node {
         if ($expr === null) {
             if (self::$should_add_placeholders) {
                 $expr = '__INCOMPLETE_EXPR__';
@@ -859,7 +968,7 @@ class ASTConverter {
             }
         }
         $node = new \ast\Node();
-        $node->kind = \ast\AST_ASSIGN;
+        $node->kind = $ref ? \ast\AST_ASSIGN_REF : \ast\AST_ASSIGN;
         $node->flags = 0;
         $node->children = [
             'var'  => $var,
@@ -954,10 +1063,10 @@ class ASTConverter {
      * @param bool $byRef
      * @param ?\ast\Node $type
      */
-    private static function _ast_node_param(bool $byRef, $variadic, $type, $name, $default, int $line) : \ast\Node {
+    private static function _ast_node_param(bool $byRef, bool $variadic, $type, $name, $default, int $line) : \ast\Node {
         $node = new \ast\Node;
         $node->kind = \ast\AST_PARAM;
-        $node->flags = $byRef ? \ast\flags\PARAM_REF : 0;
+        $node->flags = ($byRef ? \ast\flags\PARAM_REF : 0) | ($variadic ? \ast\flags\PARAM_VARIADIC : 0);
         $node->lineno = $line;
         $node->children = [
             'type' => $type,

@@ -32,6 +32,25 @@ class ConversionTest extends \PHPUnit\Framework\TestCase {
         return $tests;
     }
 
+    /** @return void */
+    private static function normalizeOriginalAST($node) {
+        if ($node instanceof \ast\Node) {
+            $kind = $node->kind;
+            if ($kind === \ast\AST_FUNC_DECL || $kind === \ast\AST_METHOD) {
+                // https://github.com/nikic/php-ast/issues/64
+                $node->flags &= ~(0x800000);
+            }
+            foreach ($node->children as $c) {
+                self::normalizeOriginalAST($c);
+            }
+            return;
+        } else if (\is_array($node)) {
+            foreach ($node as $c) {
+                self::normalizeOriginalAST($c);
+            }
+        }
+    }
+
     /** @dataProvider astValidFileExampleProvider */
     public function testFallbackFromParser(string $fileName) {
         $contents = file_get_contents($fileName);
@@ -39,6 +58,7 @@ class ConversionTest extends \PHPUnit\Framework\TestCase {
             $this->fail("Failed to read $fileName");
         }
         $ast = \ast\parse_code($contents, ASTConverter::AST_VERSION);
+        self::normalizeOriginalAST($ast);
         $this->assertInstanceOf('\ast\Node', $ast, 'Examples must be syntactically valid PHP parseable by php-ast');
         $fallback_ast = \ASTConverter\ASTConverter::ast_parse_code_fallback($contents, ASTConverter::AST_VERSION);
         $this->assertInstanceOf('\ast\Node', $fallback_ast, 'The fallback must also return a tree of php-ast nodes');
