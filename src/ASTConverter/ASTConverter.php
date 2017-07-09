@@ -387,6 +387,18 @@ class ASTConverter {
                     $startLine
                 );
             },
+            'PhpParser\Node\Expr\Ternary' => function(PhpParser\Node\Expr\Ternary $n, int $startLine) : \ast\Node {
+                return astnode(
+                    \ast\AST_CONDITIONAL,
+                    0,
+                    [
+                        'cond' => self::_phpparser_node_to_ast_node($n->cond),
+                        'true' => $n->if !== null ? self::_phpparser_node_to_ast_node($n->if) : null,
+                        'false' => self::_phpparser_node_to_ast_node($n->else),
+                    ],
+                    $startLine
+                );
+            },
             'PhpParser\Node\Expr\UnaryMinus' => function(PhpParser\Node\Expr\UnaryMinus $n, int $startLine) : \ast\Node {
                 return self::_ast_node_unary_op(\ast\flags\UNARY_MINUS, self::_phpparser_node_to_ast_node($n->expr), $startLine);
             },
