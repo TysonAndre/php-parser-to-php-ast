@@ -405,7 +405,7 @@ class ASTConverter {
             'PhpParser\Node\Stmt\Declare_' => function(PhpParser\Node\Stmt\Declare_ $n, int $startLine) : \ast\Node {
                 return self::_ast_stmt_declare(
                     self::_phpparser_declare_list_to_ast_declares($n->declares, $startLine),
-                    $n->stmts !== null ? self::_phpparser_stmtlist_to_ast_node($n->stmts, $startLine) : null,
+                    is_array($n->stmts) ? self::_phpparser_stmtlist_to_ast_node($n->stmts, $startLine) : null,
                     $startLine
                 );
             },
@@ -466,12 +466,12 @@ class ASTConverter {
                     $startLine
                 );
             },
+            /** @suppress PhanDeprecatedProperty */
             'PhpParser\Node\Stmt\Namespace_' => function(PhpParser\Node\Stmt\Namespace_ $n, int $startLine) : \ast\Node {
                 $nodeDumper = new \PhpParser\NodeDumper([
                     'dumpComments' => true,
                     'dumpPositions' => true,
                 ]);
-                echo $nodeDumper->dump($n);
                 return astnode(
                     \ast\AST_NAMESPACE,
                     0,
@@ -783,7 +783,7 @@ class ASTConverter {
     }
 
     /**
-     * @param PhpParser\Expr\ClosureUse[] $uses
+     * @param PhpParser\Node\Expr\ClosureUse[] $uses
      * @param int $line
      * @return ?\ast\Node
      */
@@ -874,7 +874,7 @@ class ASTConverter {
      * @param int $flags
      * @param ?string $name
      * @param mixed|null $extends TODO
-     * @param array $implements
+     * @param ?array $implements
      * @param \ast\Node|null $stmts
      * @param int $line
      * @param int $endLine
@@ -1173,10 +1173,14 @@ class ASTConverter {
         if (\is_string($comments)) {
             return $comments;
         }
-        if ($comments === null || count($comments) === 0) {
+        if ($comments === null) {
             return null;
         }
-        for ($i = count($comments) - 1; $i >= 0; $i--) {
+        assert(\is_array($comments));
+        if (\count($comments) === 0) {
+            return null;
+        }
+        for ($i = \count($comments) - 1; $i >= 0; $i--) {
             if ($comments[$i] instanceof PhpParser\Comment\Doc) {
                 return $comments[$i]->getText();
             } else {
