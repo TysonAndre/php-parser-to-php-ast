@@ -312,6 +312,17 @@ class ASTConverter {
                     $startLine
                 );
             },
+            'PhpParser\Node\Expr\StaticPropertyFetch' => function(PhpParser\Node\Expr\StaticPropertyFetch $n, int $startLine) : \ast\Node {
+                return astnode(
+                    \ast\AST_STATIC_PROP,
+                    0,
+                    [
+                        'class' => self::_phpparser_node_to_ast_node($n->class),
+                        'prop' => is_string($n->name) ? $n->name : self::_phpparser_node_to_ast_node($n->name),
+                    ],
+                    $startLine
+                );
+            },
             'PhpParser\Node\Expr\UnaryMinus' => function(PhpParser\Node\Expr\UnaryMinus $n, int $startLine) : \ast\Node {
                 return self::_ast_node_unary_op(\ast\flags\UNARY_MINUS, self::_phpparser_node_to_ast_node($n->expr), $startLine);
             },
@@ -404,11 +415,31 @@ class ASTConverter {
                     $n->implements ?: null,
                     self::_phpparser_stmtlist_to_ast_node($n->stmts, $startLine),
                     $startLine,
-                    $endLine
+                    $endLine,
+                    self::_extract_phpdoc_comment($n->getAttribute('comments'))
                 );
             },
             'PhpParser\Node\Stmt\ClassConst' => function(PhpParser\Node\Stmt\ClassConst $n, int $startLine) : \ast\Node {
                 return self::_phpparser_class_const_to_ast_node($n, $startLine);
+            },
+            'PhpParser\Node\Stmt\ClassMethod' => function(PhpParser\Node\Stmt\ClassMethod $n, int $startLine) : \ast\Node {
+                return astdecl(
+                    \ast\AST_METHOD,
+                    self::_phpparser_visibility_to_ast_visibility($n->flags) | ($n->byRef ? \ast\flags\RETURNS_REF : 0),
+                    [
+                        'params' => self::_phpparser_params_to_ast_params($n->params, $startLine),
+                        'uses' => null,  // TODO: anonymous class?
+                        'stmts' => is_array($n->stmts) ? self::_phpparser_stmtlist_to_ast_node($n->stmts, $startLine) : null,
+                        'returnType' => self::_phpparser_type_to_ast_node($n->returnType, sl($n->returnType) ?: $startLine)
+                    ],
+                    $startLine,
+                    self::_extract_phpdoc_comment($n->getAttribute('comments')),
+                    $n->name,
+                    $n->getAttribute('endLine')
+                );
+            },
+            'PhpParser\Node\Stmt\Const_' => function(PhpParser\Node\Stmt\Const_ $n, int $startLine) : \ast\Node {
+                return self::_phpparser_const_to_ast_node($n, $startLine);
             },
             'PhpParser\Node\Stmt\Declare_' => function(PhpParser\Node\Stmt\Declare_ $n, int $startLine) : \ast\Node {
                 return self::_ast_stmt_declare(
@@ -484,9 +515,10 @@ class ASTConverter {
                     $n->name,
                     null,
                     null,
-                    self::_phpparser_stmtlist_to_ast_node($n->stmts, $startLine),
+                    is_array($n->stmts) ? self::_phpparser_stmtlist_to_ast_node($n->stmts, $startLine) : null,
                     $startLine,
-                    $endLine
+                    $endLine,
+                    self::_extract_phpdoc_comment($n->getAttribute('comments'))
                 );
             },
             /**
@@ -531,7 +563,8 @@ class ASTConverter {
                     null,
                     self::_phpparser_stmtlist_to_ast_node($n->stmts, $startLine),
                     $startLine,
-                    $endLine
+                    $endLine,
+                    self::_extract_phpdoc_comment($n->getAttribute('comments'))
                 );
             },
             'PhpParser\Node\Stmt\TryCatch' => function(PhpParser\Node\Stmt\TryCatch $n, int $startLine) : \ast\Node {
@@ -914,7 +947,7 @@ class ASTConverter {
      * @param ?string $name
      * @param mixed|null $extends TODO
      * @param ?array $implements
-     * @param \ast\Node|null $stmts
+     * @param ?\ast\Node $stmts
      * @param int $line
      * @param int $endLine
      * @suppress PhanTypeMismatchProperty (?string to string|null is incorrectly reported)
@@ -926,25 +959,26 @@ class ASTConverter {
         ?array $implements,
         ?\ast\Node $stmts,
         int $line,
-        int $endLine
+        int $endLine,
+        ?string $docComment
     ) : \ast\Node\Decl {
         if ($name === null) {
             $flags |= \ast\flags\CLASS_ANONYMOUS;
         }
 
-        $node = new \ast\Node\Decl;
-        $node->kind = \ast\AST_CLASS;
-        $node->flags = $flags;
-        $node->lineno = $line;
-        $node->endLineno = $endLine;
-        $node->children = [
-            'extends'    => $extends, // FIXME
-            'implements' => $implements, // FIXME
-            'stmts'      => $stmts,
-        ];
-        $node->name = $name;
-
-        return $node;
+        return astdecl(
+            \ast\AST_CLASS,
+            $flags,
+            [
+                'extends'    => $extends, // FIXME
+                'implements' => $implements, // FIXME
+                'stmts'      => $stmts,
+            ],
+            $line,
+            $docComment,
+            $name,
+            $endLine
+        );
     }
 
     private static function _phpparser_arg_list_to_ast_arg_list(array $args, int $line) : \ast\Node {
@@ -1121,6 +1155,7 @@ class ASTConverter {
 
         return astnode(\ast\AST_CONST_ELEM, 0, $children, $startLine, self::_extract_phpdoc_comment($n->getAttribute('comments') ?? $docComment));
     }
+
     private static function _phpparser_visibility_to_ast_visibility(int $visibility) : int {
         $ast_visibility = 0;
         if ($visibility & \PHPParser\Node\Stmt\Class_::MODIFIER_PUBLIC) {
@@ -1157,9 +1192,7 @@ class ASTConverter {
         return astnode(\ast\AST_PROP_DECL, $flags, $propElems, $propElems[0]->lineno ?: $startLine);
     }
 
-    private static function _phpparser_class_const_to_ast_node(PhpParser\Node $n, int $startLine) : \ast\Node {
-        assert($n instanceof \PHPParser\Node\Stmt\ClassConst);
-
+    private static function _phpparser_class_const_to_ast_node(PhpParser\Node\Stmt\ClassConst $n, int $startLine) : \ast\Node {
         $constElems = [];
         $docComment = self::_extract_phpdoc_comment($n->getAttribute('comments'));
         foreach ($n->consts as $i => $prop) {
@@ -1168,6 +1201,16 @@ class ASTConverter {
         $flags = self::_phpparser_visibility_to_ast_visibility($n->flags);
 
         return astnode(\ast\AST_CLASS_CONST_DECL, $flags, $constElems, $constElems[0]->lineno ?: $startLine);
+    }
+
+    private static function _phpparser_const_to_ast_node(PhpParser\Node\Stmt\Const_ $n, int $startLine) : \ast\Node {
+        $constElems = [];
+        $docComment = self::_extract_phpdoc_comment($n->getAttribute('comments'));
+        foreach ($n->consts as $i => $prop) {
+            $constElems[] = self::_phpparser_constelem_to_ast_constelem($prop, $i === 0 ? $docComment : null);
+        }
+
+        return astnode(\ast\AST_CONST_DECL, 0, $constElems, $constElems[0]->lineno ?: $startLine);
     }
 
     private static function _phpparser_declare_list_to_ast_declares(array $declares, int $startLine) : \ast\Node {
@@ -1321,6 +1364,27 @@ function astnode(int $kind, int $flags, ?array $children, int $lineno, ?string $
     if (\is_string($docComment)) {
         $node->docComment = $docComment;
     }
+    return $node;
+}
+
+/**
+ * @suppress PhanTypeMismatchProperty https://github.com/etsy/phan/issues/609
+ * @suppress PhanUndeclaredProperty - docComment really exists.
+ * NOTE: this may be removed in the future.
+ *
+ * Phan was used while developing this. The asserts can be cleaned up in the future.
+ */
+function astdecl(int $kind, int $flags, ?array $children, int $lineno, string $docComment = null, string $name = null, int $endLineno = 0) : \ast\Node\Decl {
+    $node = new \ast\Node\Decl();
+    $node->kind = $kind;
+    $node->flags = $flags;
+    $node->lineno = $lineno;
+    $node->children = $children;
+    if (\is_string($docComment)) {
+        $node->docComment = $docComment;
+    }
+    $node->name = $name;
+    $node->endLineno = $endLineno;
     return $node;
 }
 
