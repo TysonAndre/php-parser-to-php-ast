@@ -452,6 +452,16 @@ class ASTConverter {
             'PhpParser\Node\Expr\PropertyFetch' => function(PhpParser\Node\Expr\PropertyFetch $n, int $startLine) : ?\ast\Node {
                 return self::_phpparser_propertyfetch_to_ast_prop($n, $startLine);
             },
+            'PhpParser\Node\Expr\ShellExec' => function(PhpParser\Node\Expr\ShellExec $n, int $startLine) : \ast\Node {
+                $parts = $n->parts;
+                if (\count($parts) === 1 && $parts[0] instanceof PhpParser\Node\Scalar\EncapsedStringPart) {
+                    $value = $parts[0]->value;
+                } else {
+                    $value_inner = array_map(function(PhpParser\Node $node) { return self::_phpparser_node_to_ast_node($node); }, $parts);
+                    $value = astnode(\ast\AST_ENCAPS_LIST, 0, $value_inner, $startLine);
+                }
+                return astnode(\ast\AST_SHELL_EXEC, 0, ['expr' => $value], $startLine);
+            },
             'PhpParser\Node\Expr\StaticCall' => function(PhpParser\Node\Expr\StaticCall $n, int $startLine) : \ast\Node {
                 return self::_ast_node_static_call(
                     self::_phpparser_node_to_ast_node($n->class),
@@ -492,7 +502,7 @@ class ASTConverter {
             'PhpParser\Node\Expr\Variable' => function(PhpParser\Node\Expr\Variable $n, int $startLine) : ?\ast\Node {
                 return self::_ast_node_variable($n->name, $startLine);
             },
-            'PhpParser\Node\Expr\Yield_' => function(PhpParser\Node\Expr\Yield_ $n, int $startLine) : ?\ast\Node {
+            'PhpParser\Node\Expr\Yield_' => function(PhpParser\Node\Expr\Yield_ $n, int $startLine) : \ast\Node {
                 return astnode(
                     \ast\AST_YIELD,
                     0,
@@ -500,6 +510,14 @@ class ASTConverter {
                         'value' => $n->value !== null ? self::_phpparser_node_to_ast_node($n->value) : null,
                         'key'   => $n->key   !== null ? self::_phpparser_node_to_ast_node($n->key) : null,
                     ],
+                    $startLine
+                );
+            },
+            'PhpParser\Node\Expr\YieldFrom' => function(PhpParser\Node\Expr\YieldFrom $n, int $startLine) : \ast\Node {
+                return astnode(
+                    \ast\AST_YIELD_FROM,
+                    0,
+                    ['expr' => self::_phpparser_node_to_ast_node($n->expr)],
                     $startLine
                 );
             },
@@ -836,6 +854,18 @@ class ASTConverter {
                         'method' => $n->method,
                     ], $startLine),
                     'alias' => $n->newName,
+                ], $startLine);
+            },
+            'PhpParser\Node\Stmt\TraitUseAdaptation\Precedence' => function(PhpParser\Node\Stmt\TraitUseAdaptation\Precedence $n, int $startLine) : \ast\Node {
+                $old_class = $n->trait !== null ? self::_phpparser_name_to_string($n->trait) : null;
+                $flags = ($n->trait instanceof PhpParser\Node\Name\FullyQualified) ? \ast\flags\NAME_FQ : \ast\flags\NAME_NOT_FQ;
+                // TODO: flags for visibility
+                return astnode(\ast\AST_TRAIT_PRECEDENCE, 0, [
+                    'method' => astnode(\ast\AST_METHOD_REFERENCE, 0, [
+                        'class' => astnode(\ast\AST_NAME, $flags, ['name' => $old_class], $startLine),
+                        'method' => $n->method,
+                    ], $startLine),
+                    'insteadof' => self::_phpparser_name_list_to_ast_name_list($n->insteadof, $startLine),
                 ], $startLine);
             },
             'PhpParser\Node\Stmt\TryCatch' => function(PhpParser\Node\Stmt\TryCatch $n, int $startLine) : \ast\Node {
