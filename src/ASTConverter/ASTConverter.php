@@ -757,7 +757,7 @@ class ASTConverter {
                     \ast\AST_NAMESPACE,
                     0,
                     [
-                        'name' => self::_phpparser_name_to_string($n->name),
+                        'name' => $n->name !== null ? self::_phpparser_name_to_string($n->name) : null,
                         'stmts' => isset($n->stmts) ? self::_phpparser_stmtlist_to_ast_node($n->stmts, $startLine) : null,
                     ],
                     $startLine
