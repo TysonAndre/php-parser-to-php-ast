@@ -293,6 +293,14 @@ class ASTConverter {
                     'args' => self::_phpparser_arg_list_to_ast_arg_list($n->args, $startLine),
                 ], $startLine);
             },
+            'PhpParser\Node\Expr\Print_' => function(PhpParser\Node\Expr\Print_ $n, int $startLine) : \ast\Node {
+                return astnode(
+                    \ast\AST_PRINT,
+                    0,
+                    ['expr' => self::_phpparser_node_to_ast_node($n->expr)],
+                    $startLine
+                );
+            },
             'PhpParser\Node\Expr\PropertyFetch' => function(PhpParser\Node\Expr\PropertyFetch $n, int $startLine) : ?\ast\Node {
                 return self::_phpparser_propertyfetch_to_ast_prop($n, $startLine);
             },
@@ -419,6 +427,29 @@ class ASTConverter {
                 }
                 return count($astEchos) === 1 ? $astEchos[0] : $astEchos;
             },
+            'PhpParser\Node\Stmt\Foreach_' => function(PhpParser\Node\Stmt\Foreach_ $n, int $startLine) : \ast\Node {
+                $value = self::_phpparser_node_to_ast_node($n->valueVar);
+                if ($n->byRef) {
+                    $value = astnode(
+                        \ast\AST_REF,
+                        0,
+                        ['var' => $value],
+                        $value->lineno ?? $startLine
+                    );
+                }
+                return astnode(
+                    \ast\AST_FOREACH,
+                    0,
+                    [
+                        'expr' => self::_phpparser_node_to_ast_node($n->expr),
+                        'value' => $value,
+                        'key' => $n->keyVar !== null ? self::_phpparser_node_to_ast_node($n->keyVar) : null,
+                        'stmts' => self::_phpparser_stmtlist_to_ast_node($n->stmts, $startLine),
+                    ],
+                    $startLine
+                );
+                //return self::_phpparser_stmtlist_to_ast_node($n->stmts, $startLine);
+            },
             'PhpParser\Node\Stmt\Finally_' => function(PhpParser\Node\Stmt\Finally_ $n, int $startLine) : \ast\Node {
                 return self::_phpparser_stmtlist_to_ast_node($n->stmts, $startLine);
             },
@@ -442,6 +473,9 @@ class ASTConverter {
             },
             'PhpParser\Node\Stmt\If_' => function(PhpParser\Node\Stmt\If_ $n, int $startLine) : \ast\Node {
                 return self::_phpparser_if_stmt_to_ast_if_stmt($n);
+            },
+            'PhpParser\Node\Stmt\InlineHTML' => function(PhpParser\Node\Stmt\InlineHTML $n, int $startLine) : \ast\Node {
+                return self::_ast_stmt_echo($n->value, $startLine);
             },
             'PhpParser\Node\Stmt\Interface_' => function(PhpParser\Node\Stmt\Interface_ $n, int $startLine) : \ast\Node {
                 $endLine = $n->getAttribute('endLine') ?: $startLine;
@@ -774,8 +808,13 @@ class ASTConverter {
      * @suppress PhanTypeMismatchProperty - Deliberately wrong type of kind
      */
     private static function _ast_stub($parserNode) : \ast\Node{
+        // Debugging code.
+        if (getenv('AST_THROW_INVALID')) {
+            throw new \Error("TODO:" . get_class($parserNode));
+        }
+
         $node = new \ast\Node();
-        $node->kind = "TODO:" . get_class($parserNode) . json_encode(array_keys((array)$parserNode));
+        $node->kind = "TODO:" . get_class($parserNode);
         $node->flags = 0;
         $node->lineno = $parserNode->getAttribute('startLine');
         $node->children = null;
@@ -1083,18 +1122,26 @@ class ASTConverter {
         return astnode(\ast\AST_CONST_ELEM, 0, $children, $startLine, self::_extract_phpdoc_comment($n->getAttribute('comments') ?? $docComment));
     }
     private static function _phpparser_visibility_to_ast_visibility(int $visibility) : int {
-        switch($visibility) {
-        case \PHPParser\Node\Stmt\Class_::MODIFIER_PUBLIC:
-            return \ast\flags\MODIFIER_PUBLIC;
-        case \PHPParser\Node\Stmt\Class_::MODIFIER_PROTECTED:
-            return \ast\flags\MODIFIER_PROTECTED;
-        case \PHPParser\Node\Stmt\Class_::MODIFIER_PRIVATE:
-            return \ast\flags\MODIFIER_PRIVATE;
-        case 0:
-            return \ast\flags\MODIFIER_PUBLIC;  // FIXME?
-        default:
-            throw new \Error("Invalid phpparser visibility " . $visibility);
+        $ast_visibility = 0;
+        if ($visibility & \PHPParser\Node\Stmt\Class_::MODIFIER_PUBLIC) {
+            $ast_visibility |= \ast\flags\MODIFIER_PUBLIC;
+        } else if ($visibility & \PHPParser\Node\Stmt\Class_::MODIFIER_PROTECTED) {
+            $ast_visibility |= \ast\flags\MODIFIER_PROTECTED;
+        } else if ($visibility & \PHPParser\Node\Stmt\Class_::MODIFIER_PRIVATE) {
+            $ast_visibility |= \ast\flags\MODIFIER_PRIVATE;
+        } else {
+            $ast_visibility |= \ast\flags\MODIFIER_PUBLIC;
         }
+        if ($visibility & \PHPParser\Node\Stmt\Class_::MODIFIER_STATIC) {
+            $ast_visibility |= \ast\flags\MODIFIER_STATIC;
+        }
+        if ($visibility & \PHPParser\Node\Stmt\Class_::MODIFIER_ABSTRACT) {
+            $ast_visibility |= \ast\flags\MODIFIER_ABSTRACT;
+        }
+        if ($visibility & \PHPParser\Node\Stmt\Class_::MODIFIER_FINAL) {
+            $ast_visibility |= \ast\flags\MODIFIER_FINAL;
+        }
+        return $ast_visibility;
     }
 
     private static function _phpparser_property_to_ast_node(PhpParser\Node $n, int $startLine) : \ast\Node {
