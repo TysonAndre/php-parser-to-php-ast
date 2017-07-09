@@ -466,6 +466,17 @@ class ASTConverter {
                     $startLine
                 );
             },
+            'PhpParser\Node\Scalar\Encapsed' => function(PhpParser\Node\Scalar\Encapsed $n, int $startLine) : \ast\Node {
+                return astnode(
+                    \ast\AST_ENCAPS_LIST,
+                    0,
+                    array_map(function(PhpParser\Node $n) { return self::_phpparser_node_to_ast_node($n); }, $n->parts),
+                    $startLine
+                );
+            },
+            'PhpParser\Node\Scalar\EncapsedStringPart' => function(PhpParser\Node\Scalar\EncapsedStringPart $n, int $startLine) : string {
+                return $n->value;
+            },
             'PhpParser\Node\Scalar\LNumber' => function(PhpParser\Node\Scalar\LNumber $n, int $startLine) : int {
                 return (int)$n->value;
             },
@@ -501,7 +512,7 @@ class ASTConverter {
             },
             'PhpParser\Node\Stmt\Catch_' => function(PhpParser\Node\Stmt\Catch_ $n, int $startLine) : \ast\Node {
                 return self::_ast_stmt_catch(
-                    self::_phpparser_catch_types_to_ast_catch_types($n->types, $startLine),
+                    self::_phpparser_name_list_to_ast_name_list($n->types, $startLine),
                     $n->var,
                     self::_phpparser_stmtlist_to_ast_node($n->stmts, $startLine),
                     $startLine
@@ -663,6 +674,10 @@ class ASTConverter {
                     $startLine
                 );
             },
+            'PhpParser\Node\Stmt\Nop' => function(PhpParser\Node\Stmt\Nop $n, int $startLine) : array {
+                // `;;`
+                return [];
+            },
             'PhpParser\Node\Stmt\Property' => function(PhpParser\Node\Stmt\Property $n, int $startLine) : \ast\Node {
                 return self::_phpparser_property_to_ast_node($n, $startLine);
             },
@@ -703,6 +718,36 @@ class ASTConverter {
                     $endLine,
                     self::_extract_phpdoc_comment($n->getAttribute('comments'))
                 );
+            },
+            'PhpParser\Node\Stmt\TraitUse' => function(PhpParser\Node\Stmt\TraitUse $n, int $startLine) : \ast\Node {
+                if (\is_array($n->adaptations) && \count($n->adaptations) > 0) {
+                    $adaptations_inner = array_map(function(PhpParser\Node\Stmt\TraitUseAdaptation $n) : \ast\Node {
+                        return self::_phpparser_node_to_ast_node($n);
+                    }, $n->adaptations);
+                    $adaptations = astnode(\ast\AST_TRAIT_ADAPTATIONS, 0, $adaptations_inner, $adaptations_inner[0]->lineno ?: $startLine);
+                } else {
+                    $adaptations = null;
+                }
+                return astnode(
+                    \ast\AST_USE_TRAIT,
+                    0,
+                    [
+                        'traits' => self::_phpparser_name_list_to_ast_name_list($n->traits, $startLine),
+                        'adaptations' => $adaptations,
+                    ],
+                    $startLine
+                );
+            },
+            'PhpParser\Node\Stmt\TraitUseAdaptation\Alias' => function(PhpParser\Node\Stmt\TraitUseAdaptation\Alias $n, int $startLine) : \ast\Node {
+                $old_class = $n->trait !== null ? self::_phpparser_name_to_string($n->trait) : null;
+                // TODO: flags for visibility
+                return astnode(\ast\AST_TRAIT_ALIAS, self::_phpparser_visibility_to_ast_visibility($n->newModifier ?? 0), [
+                    'method' => astnode(\ast\AST_METHOD_REFERENCE, 0, [
+                        'class' => $old_class,
+                        'method' => $n->method,
+                    ], $startLine),
+                    'alias' => $n->newName,
+                ], $startLine);
             },
             'PhpParser\Node\Stmt\TryCatch' => function(PhpParser\Node\Stmt\TryCatch $n, int $startLine) : \ast\Node {
                 if (!is_array($n->catches)) {
@@ -785,7 +830,7 @@ class ASTConverter {
         return $node;
     }
 
-    private static function _phpparser_catch_types_to_ast_catch_types(array $types, int $line) : \ast\Node {
+    private static function _phpparser_name_list_to_ast_name_list(array $types, int $line) : \ast\Node {
         $astTypes = [];
         foreach ($types as $type) {
             $astTypes[] = self::_phpparser_node_to_ast_node($type);
