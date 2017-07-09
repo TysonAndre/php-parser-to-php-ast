@@ -846,9 +846,10 @@ class ASTConverter {
                 );
             },
             'PhpParser\Node\Stmt\TraitUseAdaptation\Alias' => function(PhpParser\Node\Stmt\TraitUseAdaptation\Alias $n, int $startLine) : \ast\Node {
-                $old_class = $n->trait !== null ? self::_phpparser_name_to_string($n->trait) : null;
+                $old_class = $n->trait !== null ? self::_phpparser_node_to_ast_node($n->trait) : null;
+                $flags = ($n->trait instanceof PhpParser\Node\Name\FullyQualified) ? \ast\flags\NAME_FQ : \ast\flags\NAME_NOT_FQ;
                 // TODO: flags for visibility
-                return astnode(\ast\AST_TRAIT_ALIAS, self::_phpparser_visibility_to_ast_visibility($n->newModifier ?? 0), [
+                return astnode(\ast\AST_TRAIT_ALIAS, self::_phpparser_visibility_to_ast_visibility($n->newModifier ?? 0, false), [
                     'method' => astnode(\ast\AST_METHOD_REFERENCE, 0, [
                         'class' => $old_class,
                         'method' => $n->method,
@@ -1523,7 +1524,7 @@ class ASTConverter {
         return astnode(\ast\AST_CONST_ELEM, 0, $children, $startLine, self::_extract_phpdoc_comment($n->getAttribute('comments') ?? $docComment));
     }
 
-    private static function _phpparser_visibility_to_ast_visibility(int $visibility) : int {
+    private static function _phpparser_visibility_to_ast_visibility(int $visibility, bool $automatically_add_public = true) : int {
         $ast_visibility = 0;
         if ($visibility & \PHPParser\Node\Stmt\Class_::MODIFIER_PUBLIC) {
             $ast_visibility |= \ast\flags\MODIFIER_PUBLIC;
@@ -1532,7 +1533,9 @@ class ASTConverter {
         } else if ($visibility & \PHPParser\Node\Stmt\Class_::MODIFIER_PRIVATE) {
             $ast_visibility |= \ast\flags\MODIFIER_PRIVATE;
         } else {
-            $ast_visibility |= \ast\flags\MODIFIER_PUBLIC;
+            if ($automatically_add_public) {
+                $ast_visibility |= \ast\flags\MODIFIER_PUBLIC;
+            }
         }
         if ($visibility & \PHPParser\Node\Stmt\Class_::MODIFIER_STATIC) {
             $ast_visibility |= \ast\flags\MODIFIER_STATIC;

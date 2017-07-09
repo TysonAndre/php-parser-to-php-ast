@@ -3,13 +3,15 @@ PHP-Parser to php-ast
 
 [![Build Status](https://travis-ci.org/TysonAndre/php-parser-to-php-ast.svg?branch=master)](https://travis-ci.org/TysonAndre/php-parser-to-php-ast)
 
-8 out of 41 tests are failing, and only due to namespace support and line numbers being slightly different in php-ast.
+No tests are failing
 
+- This is 90% done
 - The test suite is not yet comprehensive.
+- Need to normalize namespaces.
 
 [Current Issues](https://github.com/TysonAndre/php-parser-to-php-ast/issues/)
 
-- The test suite this is based off of is not comprehensive, and edge cases still remain.
+- The test suite this is based off of covers common cases for Phan, but edge cases still remain.
   See https://github.com/TysonAndre/php-parser-to-php-ast/issues/4
 
 Usage
