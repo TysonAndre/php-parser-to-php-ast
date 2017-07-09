@@ -192,7 +192,7 @@ function ast_dump($ast, int $options = 0) : string {
     } else if ($ast === null) {
         return 'null';
     } else if (is_string($ast)) {
-        return "\"$ast\""; 
+        return "\"$ast\"";
     } else {
         return (string) $ast;
     }

@@ -466,6 +466,22 @@ class ASTConverter {
                     $startLine
                 );
             },
+            'PhpParser\Node\Stmt\Namespace_' => function(PhpParser\Node\Stmt\Namespace_ $n, int $startLine) : \ast\Node {
+                $nodeDumper = new \PhpParser\NodeDumper([
+                    'dumpComments' => true,
+                    'dumpPositions' => true,
+                ]);
+                echo $nodeDumper->dump($n);
+                return astnode(
+                    \ast\AST_NAMESPACE,
+                    0,
+                    [
+                        'name' => implode('\\', $n->name->parts ?? []),
+                        'stmts' => isset($n->stmts) ? self::_phpparser_stmtlist_to_ast_node($n->stmts, $startLine) : null,
+                    ],
+                    $startLine
+                );
+            },
             'PhpParser\Node\Stmt\Property' => function(PhpParser\Node\Stmt\Property $n, int $startLine) : \ast\Node {
                 return self::_phpparser_property_to_ast_node($n, $startLine);
             },
@@ -490,7 +506,7 @@ class ASTConverter {
                 }
                 return self::_ast_node_try(
                     self::_phpparser_stmtlist_to_ast_node($n->stmts, $startLine), // $n->try
-                    self::_phpparser_catchlist_to_ast_catchlist($n->catches),
+                    self::_phpparser_catchlist_to_ast_catchlist($n->catches, $startLine),
                     isset($n->finally) ? self::_phpparser_stmtlist_to_ast_node($n->finally->stmts, sl($n->finally)) : null,
                     $startLine
                 );
@@ -552,15 +568,15 @@ class ASTConverter {
         return $node;
     }
 
-    private static function _phpparser_catchlist_to_ast_catchlist(array $catches) : \ast\Node {
+    private static function _phpparser_catchlist_to_ast_catchlist(array $catches, int $lineno) : \ast\Node {
         $node = new \ast\Node();
         $node->kind = \ast\AST_CATCH_LIST;
-        $node->lineno = 0;
         $node->flags = 0;
         $children = [];
         foreach ($catches as $parserCatch) {
             $children[] = self::_phpparser_node_to_ast_node($parserCatch);
         }
+        $node->lineno = $children[0]->lineno ?? $lineno;
         $node->children = $children;
         return $node;
     }
@@ -703,7 +719,7 @@ class ASTConverter {
         $node = new \ast\Node;
         $node->kind = \ast\AST_NULLABLE_TYPE;
         // FIXME: Why is this a special case in php-ast? (e.g. nullable int has no flags on the nullable node)
-        $node->flags = ($type->kind === \ast\AST_TYPE && $type->flags === \ast\flags\TYPE_ARRAY) ? $type->flags : 0;
+        $node->flags = 0;
         $node->lineno = $line;
         $node->children = ['type' => $type];
         return $node;
@@ -759,7 +775,7 @@ class ASTConverter {
      */
     private static function _ast_stub($parserNode) : \ast\Node{
         $node = new \ast\Node();
-        $node->kind = "TODO:" . get_class($parserNode);
+        $node->kind = "TODO:" . get_class($parserNode) . json_encode(array_keys((array)$parserNode));
         $node->flags = 0;
         $node->lineno = $parserNode->getAttribute('startLine');
         $node->children = null;
@@ -769,11 +785,15 @@ class ASTConverter {
     /**
      * @param PhpParser\Expr\ClosureUse[] $uses
      * @param int $line
+     * @return ?\ast\Node
      */
     private static function _phpparser_closure_uses_to_ast_closure_uses(
         array $uses,
         int $line
-    ) : \ast\Node {
+    ) {
+        if (count($uses) === 0) {
+            return null;
+        }
         $astUses = [];
         foreach ($uses as $use) {
             $astUses[] = astnode(\ast\AST_CLOSURE_VAR, $use->byRef ? 1 : 0, ['name' => $use->var], $use->getAttribute('startLine'));
@@ -891,12 +911,12 @@ class ASTConverter {
     private static function _phpparser_arg_list_to_ast_arg_list(array $args, int $line) : \ast\Node {
         $node = new \ast\Node();
         $node->kind = \ast\AST_ARG_LIST;
-        $node->lineno = $line;
         $node->flags = 0;
         $astArgs = [];
         foreach ($args as $arg) {
             $astArgs[] = self::_phpparser_node_to_ast_node($arg);
         }
+        $node->lineno = $astArgs[0]->lineno ?? $line;
         $node->children = $astArgs;
         return $node;
     }
@@ -1160,7 +1180,7 @@ class ASTConverter {
             if ($comments[$i] instanceof PhpParser\Comment\Doc) {
                 return $comments[$i]->getText();
             } else {
-                var_dump($comments[$i]);
+                // e.g. PhpParser\Comment; for a line comment
             }
         }
         return null;

@@ -1,8 +1,6 @@
 <?php
-function
-test
-()
-{
+// Suppressing the real line numbers.
+function test () {
     var_dump(
         $foo
     );

@@ -56,7 +56,13 @@ class ConversionTest extends \PHPUnit\Framework\TestCase {
                 $dump = $nodeDumper->dump($phpParserNode);
             } catch (\PhpParser\Error $e) {
             }
-            $original_ast_dump = \ast_dump($ast);
+            $original_ast_dump = \ast_dump($ast, AST_DUMP_LINENOS);
+            $fallback_ast_dump = 'could not dump';
+            try {
+                $fallback_ast_dump = \ast_dump($fallback_ast, AST_DUMP_LINENOS);
+            } catch(\Throwable $e) {
+                $fallback_ast_dump = 'could not dump: ' . get_class($e) . ': ' . $e->getMessage();
+            }
             $parser_export = var_export($phpParserNode, true);
             $this->assertSame($originalASTRepr, $fallbackASTRepr,  <<<EOT
 The fallback must return the same tree of php-ast nodes
@@ -67,6 +73,8 @@ $contents
 Original AST:
 $original_ast_dump
 
+Fallback AST:
+$fallback_ast_dump
 PHP-Parser(simplified):
 $dump
 EOT
