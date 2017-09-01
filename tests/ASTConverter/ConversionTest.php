@@ -22,12 +22,38 @@ class ConversionTest extends \PHPUnit\Framework\TestCase {
         return array_values($files);
     }
 
+    /**
+     * @return bool
+     */
+    public static function hasNativeASTSupport(int $astVersion) {
+        try {
+            $x = \ast\parse_code('', $astVersion);
+            return true;
+        } catch (\LogicException $e) {
+            return false;
+        }
+    }
+
+    /**
+     * @return string[]|int[] [string $filePath, int $astVersion]
+     */
     public function astValidFileExampleProvider() {
         $tests = [];
         $sourceDir = dirname(dirname(realpath(__DIR__))) . '/test_files/src';
         $files = $this->_scanSourceDirForPHP($sourceDir);
+        $supports40 = self::hasNativeASTSupport(40);
+        $supports50 = self::hasNativeASTSupport(50);
+        if (!($supports40 || $supports50)) {
+            throw new RuntimeException("Neither AST version 40 nor 50 are natively supported");
+        }
         foreach ($files as $file) {
-            $tests[] = [$sourceDir . '/' . $file];
+            $path = $sourceDir . '/' . $file;
+            if ($supports40) {
+                $tests[] = [$path, 40];
+            }
+            if ($supports50) {
+                $tests[] = [$path, 50];
+            }
         }
         return $tests;
     }
@@ -52,15 +78,15 @@ class ConversionTest extends \PHPUnit\Framework\TestCase {
     }
 
     /** @dataProvider astValidFileExampleProvider */
-    public function testFallbackFromParser(string $fileName) {
+    public function testFallbackFromParser(string $fileName, int $astVersion) {
         $contents = file_get_contents($fileName);
         if ($contents === false) {
             $this->fail("Failed to read $fileName");
         }
-        $ast = \ast\parse_code($contents, ASTConverter::AST_VERSION);
+        $ast = \ast\parse_code($contents, $astVersion);
         self::normalizeOriginalAST($ast);
         $this->assertInstanceOf('\ast\Node', $ast, 'Examples must be syntactically valid PHP parseable by php-ast');
-        $fallback_ast = \ASTConverter\ASTConverter::ast_parse_code_fallback($contents, ASTConverter::AST_VERSION);
+        $fallback_ast = \ASTConverter\ASTConverter::ast_parse_code_fallback($contents, $astVersion);
         $this->assertInstanceOf('\ast\Node', $fallback_ast, 'The fallback must also return a tree of php-ast nodes');
         $fallbackASTRepr = var_export($fallback_ast, true);
         $originalASTRepr = var_export($ast, true);
