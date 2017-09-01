@@ -167,7 +167,7 @@ function format_flags(int $kind, int $flags) : string {
 
 /**
  * Dumps abstract syntax tree
- * @suppress PhanUndeclaredProperty fixme
+ * @suppress PhanUndeclaredProperty some properties of Decl aren't part of Node.
  */
 function ast_dump($ast, int $options = 0) : string {
     if ($ast instanceof ast\Node) {

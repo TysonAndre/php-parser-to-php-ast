@@ -68,7 +68,8 @@ class ASTConverter {
         if (is_array($parserNode)) {
             return self::_phpparser_stmtlist_to_ast_node($parserNode, 1);
         }
-        $result = self::_phpparser_node_to_ast_node($parserNode);
+        // Unreachable?
+        return self::_phpparser_node_to_ast_node($parserNode);
     }
 
     private static function _start_parsing(int $ast_version) {
