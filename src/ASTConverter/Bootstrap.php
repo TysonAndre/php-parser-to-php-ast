@@ -13,7 +13,6 @@ foreach ([
     __DIR__.'/../../../../../vendor/autoload.php', // autoloader is in parent project
     ] as $file) {
     if (file_exists($file)) {
-        echo "Found the autoloader at $file\n";
         require_once($file);
         break;
     }

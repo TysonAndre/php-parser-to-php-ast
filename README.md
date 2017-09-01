@@ -39,7 +39,7 @@ Using it as an error-tolerant substitute for php-ast (e.g. for use in IDEs)
 Running unit tests
 ------------------
 
-To run unit tests, you must install [nikic/php-ast](https://github.com/nikic/php-ast)
+To run unit tests, you must install [nikic/php-ast](https://github.com/nikic/php-ast). A version supporting AST versions 40 and/or 50 should be installed (`~0.1.5` is preferred)
 
 - Then run `vendor/bin/phpunit`
 
