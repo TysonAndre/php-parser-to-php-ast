@@ -3,6 +3,14 @@ PHP-Parser to php-ast
 
 [![Build Status](https://travis-ci.org/TysonAndre/php-parser-to-php-ast.svg?branch=master)](https://travis-ci.org/TysonAndre/php-parser-to-php-ast)
 
+This converts ASTs(Abstract Syntax Trees) from [PHP-Parser](https://github.com/nikic/PHP-Parser) to [php-ast](https://github.com/nikic/php-ast/).
+It can be used as a PHP-only implementation of php-ast.
+
+Supported [php-ast AST versions](https://github.com/nikic/php-ast#version-changelog): 40, 50
+
+Current Status
+--------------
+
 No tests are failing
 
 - This is 90% done
@@ -31,7 +39,7 @@ Using it as an error-tolerant substitute for php-ast (e.g. for use in IDEs)
 Running unit tests
 ------------------
 
-To run unit tests, you must install [nikic/php-ast](https://github.com/nikic/php-ast)
+To run unit tests, you must install [nikic/php-ast](https://github.com/nikic/php-ast). A version supporting AST versions 40 and/or 50 should be installed (`~0.1.5` is preferred)
 
 - Then run `vendor/bin/phpunit`
 

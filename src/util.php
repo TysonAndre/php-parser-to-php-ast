@@ -1,4 +1,5 @@
 <?php declare(strict_types=1);
+// TODO: update for version 50 and 40
 
 use ast\flags;
 
@@ -164,7 +165,10 @@ function format_flags(int $kind, int $flags) : string {
     return (string) $flags;
 }
 
-/** Dumps abstract syntax tree */
+/**
+ * Dumps abstract syntax tree
+ * @suppress PhanUndeclaredProperty some properties of Decl aren't part of Node.
+ */
 function ast_dump($ast, int $options = 0) : string {
     if ($ast instanceof ast\Node) {
         $result = ast\get_kind_name($ast->kind);
@@ -179,13 +183,20 @@ function ast_dump($ast, int $options = 0) : string {
         if (ast\kind_uses_flags($ast->kind)) {
             $result .= "\n    flags: " . format_flags($ast->kind, $ast->flags);
         }
-        if (isset($ast->name)) {
-            $result .= "\n    name: $ast->name";
+        $name = $ast->name ?? $ast->children['name'] ?? null;
+        if (is_string($name)) {
+            $result .= "\n    name: $name";
         }
-        if (isset($ast->docComment)) {
-            $result .= "\n    docComment: $ast->docComment";
+        $docComment = $ast->docComment ?? $ast->children['docComment'] ?? null;
+        if ($docComment !== null) {
+            $result .= "\n    docComment: $docComment";
         }
         foreach ($ast->children as $i => $child) {
+            if ($i === 'name' && $child === $name) {
+                continue;
+            } else if ($i === 'docComment' && $child === $docComment) {
+                continue;
+            }
             $result .= "\n    $i: " . str_replace("\n", "\n    ", ast_dump($child, $options));
         }
         return $result;

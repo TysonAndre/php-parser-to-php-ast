@@ -177,11 +177,25 @@ EOT;
     }
 
     private function _testFallbackFromParser(string $incompleteContents, string $validContents) {
-        $ast = \ast\parse_code($validContents, ASTConverter::AST_VERSION);
+        $supports40 = ConversionTest::hasNativeASTSupport(40);
+        $supports50 = ConversionTest::hasNativeASTSupport(50);
+        if (!($supports40 || $supports50)) {
+            $this->fail('No supported AST versions to test');
+        }
+        if ($supports40) {
+            $this->_testFallbackFromParserForASTVersion($incompleteContents, $validContents, 40);
+        }
+        if ($supports50) {
+            $this->_testFallbackFromParserForASTVersion($incompleteContents, $validContents, 50);
+        }
+    }
+
+    private function _testFallbackFromParserForASTVersion(string $incompleteContents, string $validContents, int $astVersion) {
+        $ast = \ast\parse_code($validContents, $astVersion);
         $this->assertInstanceOf('\ast\Node', $ast, 'Examples(for validContents) must be syntactically valid PHP parseable by php-ast');
         $errors = [];
         $phpParserNode = ASTConverter::phpparser_parse($incompleteContents, true, $errors);
-        $fallback_ast = ASTConverter::phpparser_to_phpast($phpParserNode, ASTConverter::AST_VERSION);
+        $fallback_ast = ASTConverter::phpparser_to_phpast($phpParserNode, $astVersion);
         $this->assertInstanceOf('\ast\Node', $fallback_ast, 'The fallback must also return a tree of php-ast nodes');
         $fallbackASTRepr = var_export($fallback_ast, true);
         $originalASTRepr = var_export($ast, true);
@@ -197,7 +211,7 @@ EOT;
             } catch (\PhpParser\Error $e) {
             }
             $original_ast_dump = \ast_dump($ast);
-            $parser_export = var_export($phpParserNode, true);
+            // $parser_export = var_export($phpParserNode, true);
             $this->assertSame($originalASTRepr, $fallbackASTRepr,  <<<EOT
 The fallback must return the same tree of php-ast nodes
 Code:
