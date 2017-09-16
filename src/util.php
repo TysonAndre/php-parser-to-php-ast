@@ -171,7 +171,7 @@ function format_flags(int $kind, int $flags) : string {
  */
 function ast_dump($ast, int $options = 0) : string {
     if ($ast instanceof ast\Node) {
-        $result = ast\get_kind_name($ast->kind);
+        $result = is_int($ast->kind) ? ast\get_kind_name($ast->kind) : 'Unknown (' . var_export($ast->kind, true) . ')';
 
         if ($options & AST_DUMP_LINENOS) {
             $result .= " @ $ast->lineno";
@@ -180,7 +180,7 @@ function ast_dump($ast, int $options = 0) : string {
             }
         }
 
-        if (ast\kind_uses_flags($ast->kind)) {
+        if (is_int($ast->kind) && ast\kind_uses_flags($ast->kind)) {
             $result .= "\n    flags: " . format_flags($ast->kind, $ast->flags);
         }
         $name = $ast->name ?? $ast->children['name'] ?? null;
@@ -190,6 +190,10 @@ function ast_dump($ast, int $options = 0) : string {
         $docComment = $ast->docComment ?? $ast->children['docComment'] ?? null;
         if ($docComment !== null) {
             $result .= "\n    docComment: $docComment";
+        }
+        if (!is_array($ast->children)) {
+            $result .= "\n    : INVALID AST CHILDREN: " . var_export($ast->children, true) . "\n";
+            return $result;
         }
         foreach ($ast->children as $i => $child) {
             if ($i === 'name' && $child === $name) {
