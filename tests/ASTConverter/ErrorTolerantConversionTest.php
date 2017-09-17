@@ -8,11 +8,11 @@ class ErrorTolerantConversionTest extends \PHPUnit\Framework\TestCase {
 
     public function setUp() {
         parent::setUp();
-        ASTConverter::set_should_add_placeholders(false);
+        ASTConverter::setShouldAddPlaceholders(false);
     }
 
     public function testIncompleteVar() {
-        ASTConverter::set_should_add_placeholders(false);
+        ASTConverter::setShouldAddPlaceholders(false);
         $incompleteContents = <<<'EOT'
 <?php
 function foo() {
@@ -29,7 +29,7 @@ EOT;
     }
 
     public function testIncompleteVarWithPlaceholder() {
-        ASTConverter::set_should_add_placeholders(true);
+        ASTConverter::setShouldAddPlaceholders(true);
         $incompleteContents = <<<'EOT'
 <?php
 function foo() {
@@ -46,7 +46,7 @@ EOT;
     }
 
     public function testIncompleteProperty() {
-        ASTConverter::set_should_add_placeholders(false);
+        ASTConverter::setShouldAddPlaceholders(false);
         $incompleteContents = <<<'EOT'
 <?php
 function foo() {
@@ -65,7 +65,7 @@ EOT;
     }
 
     public function testIncompletePropertyWithPlaceholder() {
-        ASTConverter::set_should_add_placeholders(true);
+        ASTConverter::setShouldAddPlaceholders(true);
         $incompleteContents = <<<'EOT'
 <?php
 function foo() {
@@ -84,7 +84,7 @@ EOT;
     }
 
     public function testIncompleteMethod() {
-        ASTConverter::set_should_add_placeholders(false);
+        ASTConverter::setShouldAddPlaceholders(false);
         $incompleteContents = <<<'EOT'
 <?php
 function foo() {
@@ -103,7 +103,7 @@ EOT;
     }
 
     public function testIncompleteMethodWithPlaceholder() {
-        ASTConverter::set_should_add_placeholders(true);
+        ASTConverter::setShouldAddPlaceholders(true);
         $incompleteContents = <<<'EOT'
 <?php
 function foo() {
@@ -122,7 +122,7 @@ EOT;
     }
 
     public function testMiscNoise() {
-        ASTConverter::set_should_add_placeholders(false);
+        ASTConverter::setShouldAddPlaceholders(false);
         $incompleteContents = <<<'EOT'
 <?php
 function foo() {
@@ -141,7 +141,7 @@ EOT;
     }
 
     public function testMiscNoiseWithPlaceholders() {
-        ASTConverter::set_should_add_placeholders(true);
+        ASTConverter::setShouldAddPlaceholders(true);
         $incompleteContents = <<<'EOT'
 <?php
 function foo() {
@@ -160,7 +160,7 @@ EOT;
     }
 
     public function testIncompleteArithmeticWithPlaceholders() {
-        ASTConverter::set_should_add_placeholders(true);
+        ASTConverter::setShouldAddPlaceholders(true);
         $incompleteContents = <<<'EOT'
 <?php
 function foo() {
@@ -177,7 +177,7 @@ EOT;
     }
 
     public function testMissingSemicolon() {
-        ASTConverter::set_should_add_placeholders(false);
+        ASTConverter::setShouldAddPlaceholders(false);
         $incompleteContents = <<<'EOT'
 <?php
 function foo() {
@@ -239,8 +239,8 @@ EOT;
         $ast = \ast\parse_code($validContents, $astVersion);
         $this->assertInstanceOf('\ast\Node', $ast, 'Examples(for validContents) must be syntactically valid PHP parseable by php-ast');
         $errors = [];
-        $phpParserNode = ASTConverter::phpparser_parse($incompleteContents, true, $errors);
-        $fallback_ast = ASTConverter::phpparser_to_phpast($phpParserNode, $astVersion);
+        $phpParserNode = ASTConverter::phpparserParse($incompleteContents, true, $errors);
+        $fallback_ast = ASTConverter::phpparserToPhpAst($phpParserNode, $astVersion);
         $this->assertInstanceOf('\ast\Node', $fallback_ast, 'The fallback must also return a tree of php-ast nodes');
         $fallbackASTRepr = var_export($fallback_ast, true);
         $originalASTRepr = var_export($ast, true);

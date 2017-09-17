@@ -103,7 +103,7 @@ class ConversionTest extends \PHPUnit\Framework\TestCase {
         self::normalizeOriginalAST($ast);
         $this->assertInstanceOf('\ast\Node', $ast, 'Examples must be syntactically valid PHP parseable by php-ast');
         try {
-            $fallback_ast = \ASTConverter\ASTConverter::ast_parse_code_fallback($contents, $astVersion);
+            $fallback_ast = ASTConverter::astParseCodeFallback($contents, $astVersion);
         } catch (\Throwable $e) {
             throw new \RuntimeException("Error parsing $fileName with ast version $astVersion", $e->getCode(), $e);
         }
@@ -120,7 +120,7 @@ class ConversionTest extends \PHPUnit\Framework\TestCase {
                 'dumpComments' => true,
                 'dumpPositions' => true,
             ]);
-            $phpParserNode = ASTConverter::phpparser_parse($contents);
+            $phpParserNode = ASTConverter::phpparserParse($contents);
             try {
                 $dump = $nodeDumper->dump($phpParserNode);
             } catch (\PhpParser\Error $e) {
