@@ -7,6 +7,7 @@ function print_usage_and_exit(string $msg = '') {
 }
 
 function convert_codestyle() {
+    error_reporting(E_ALL);
     global $argv;
     if (count($argv) !== 2) {
         print_usage_and_exit();
@@ -26,6 +27,23 @@ function convert_codestyle() {
             return '_' . strtolower($msg[0]) . $msg[1];
         }, $args[2]);
     }, $contents);
+
+    preg_match_all('@\bfunction\s+(_?[a-z]+(_[a-z]+)+)\s*\(@', $new_contents, $matches);
+    $function_names = $matches[1];
+    $function_names_set = array_flip($function_names);
+    $new_contents = preg_replace_callback('@\b_?[a-z]+(_[a-z]+)+\b@', function(array $args) use ($function_names_set) : string {
+        $name = $args[0];
+        if (!isset($function_names_set[$name])) {
+            return $name;
+        }
+        $name = ltrim($name, '_');
+        $name = preg_replace_callback('@_[a-z]@', function(array $args) {
+            $msg = $args[0];
+            assert(strlen($msg) === 2);
+            return strtoupper($msg[1]);
+        }, $name);
+        return $name;
+    }, $new_contents);
     echo $new_contents;
 }
 
