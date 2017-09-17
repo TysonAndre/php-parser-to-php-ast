@@ -6,182 +6,182 @@ require_once __DIR__ . '/../../src/util.php';
 
 class ErrorTolerantConversionTest extends \PHPUnit\Framework\TestCase {
     public function testIncompleteVar() {
-        $incompleteContents = <<<'EOT'
+        $incomplete_contents = <<<'EOT'
 <?php
 function foo() {
   $a = $
 }
 EOT;
-        $validContents = <<<'EOT'
+        $valid_contents = <<<'EOT'
 <?php
 function foo() {
 
 }
 EOT;
-        $this->_testFallbackFromParser($incompleteContents, $validContents);
+        $this->_testFallbackFromParser($incomplete_contents, $valid_contents);
     }
 
     public function testIncompleteVarWithPlaceholder() {
-        $incompleteContents = <<<'EOT'
+        $incomplete_contents = <<<'EOT'
 <?php
 function foo() {
   $a = $
 }
 EOT;
-        $validContents = <<<'EOT'
+        $valid_contents = <<<'EOT'
 <?php
 function foo() {
   $a = $__INCOMPLETE_VARIABLE__;
 }
 EOT;
-        $this->_testFallbackFromParser($incompleteContents, $validContents, true);
+        $this->_testFallbackFromParser($incomplete_contents, $valid_contents, true);
     }
 
     public function testIncompleteProperty() {
-        $incompleteContents = <<<'EOT'
+        $incomplete_contents = <<<'EOT'
 <?php
 function foo() {
   $c;
   $a = $b->
 }
 EOT;
-        $validContents = <<<'EOT'
+        $valid_contents = <<<'EOT'
 <?php
 function foo() {
   $c;
 
 }
 EOT;
-        $this->_testFallbackFromParser($incompleteContents, $validContents);
+        $this->_testFallbackFromParser($incomplete_contents, $valid_contents);
     }
 
     public function testIncompletePropertyWithPlaceholder() {
-        $incompleteContents = <<<'EOT'
+        $incomplete_contents = <<<'EOT'
 <?php
 function foo() {
   $c;
   $a = $b->
 }
 EOT;
-        $validContents = <<<'EOT'
+        $valid_contents = <<<'EOT'
 <?php
 function foo() {
   $c;
   $a = $b->__INCOMPLETE_PROPERTY__;
 }
 EOT;
-        $this->_testFallbackFromParser($incompleteContents, $validContents, true);
+        $this->_testFallbackFromParser($incomplete_contents, $valid_contents, true);
     }
 
     public function testIncompleteMethod() {
-        $incompleteContents = <<<'EOT'
+        $incomplete_contents = <<<'EOT'
 <?php
 function foo() {
   $b;
   $a = Bar::
 }
 EOT;
-        $validContents = <<<'EOT'
+        $valid_contents = <<<'EOT'
 <?php
 function foo() {
   $b;
 
 }
 EOT;
-        $this->_testFallbackFromParser($incompleteContents, $validContents);
+        $this->_testFallbackFromParser($incomplete_contents, $valid_contents);
     }
 
     public function testIncompleteMethodWithPlaceholder() {
-        $incompleteContents = <<<'EOT'
+        $incomplete_contents = <<<'EOT'
 <?php
 function foo() {
   $b;
   $a = Bar::
 }
 EOT;
-        $validContents = <<<'EOT'
+        $valid_contents = <<<'EOT'
 <?php
 function foo() {
   $b;
   $a = Bar::__INCOMPLETE_CLASS_CONST__;
 }
 EOT;
-        $this->_testFallbackFromParser($incompleteContents, $validContents, true);
+        $this->_testFallbackFromParser($incomplete_contents, $valid_contents, true);
     }
 
     public function testMiscNoise() {
-        $incompleteContents = <<<'EOT'
+        $incomplete_contents = <<<'EOT'
 <?php
 function foo() {
   $b;
   |
 }
 EOT;
-        $validContents = <<<'EOT'
+        $valid_contents = <<<'EOT'
 <?php
 function foo() {
   $b;
 
 }
 EOT;
-        $this->_testFallbackFromParser($incompleteContents, $validContents);
+        $this->_testFallbackFromParser($incomplete_contents, $valid_contents);
     }
 
     public function testMiscNoiseWithPlaceholders() {
-        $incompleteContents = <<<'EOT'
+        $incomplete_contents = <<<'EOT'
 <?php
 function foo() {
   $b;
   |
 }
 EOT;
-        $validContents = <<<'EOT'
+        $valid_contents = <<<'EOT'
 <?php
 function foo() {
   $b;
 
 }
 EOT;
-        $this->_testFallbackFromParser($incompleteContents, $validContents, true);
+        $this->_testFallbackFromParser($incomplete_contents, $valid_contents, true);
     }
 
     public function testIncompleteArithmeticWithPlaceholders() {
-        $incompleteContents = <<<'EOT'
+        $incomplete_contents = <<<'EOT'
 <?php
 function foo() {
   ($b * $c) +
 }
 EOT;
-        $validContents = <<<'EOT'
+        $valid_contents = <<<'EOT'
 <?php
 function foo() {
   $b * $c;
 }
 EOT;
-        $this->_testFallbackFromParser($incompleteContents, $validContents, true);
+        $this->_testFallbackFromParser($incomplete_contents, $valid_contents, true);
     }
 
     public function testMissingSemicolon() {
-        $incompleteContents = <<<'EOT'
+        $incomplete_contents = <<<'EOT'
 <?php
 function foo() {
     $y = 3
     $x = intdiv(3, 2);
 }
 EOT;
-        $validContents = <<<'EOT'
+        $valid_contents = <<<'EOT'
 <?php
 function foo() {
     $y = 3;
     $x = intdiv(3, 2);
 }
 EOT;
-        $this->_testFallbackFromParser($incompleteContents, $validContents);
+        $this->_testFallbackFromParser($incomplete_contents, $valid_contents);
     }
 
 // Another test (Won't work with php-parser, might work with tolerant-php-parser
 /**
-        $incompleteContents = <<<'EOT'
+        $incomplete_contents = <<<'EOT'
 <?php
 class C{
     public function foo() {
@@ -192,7 +192,7 @@ class C{
     }
 }
 EOT;
-        $validContents = <<<'EOT'
+        $valid_contents = <<<'EOT'
 <?php
 class C{
     public function foo() {
@@ -205,51 +205,51 @@ class C{
 EOT;
  */
 
-    private function _testFallbackFromParser(string $incompleteContents, string $validContents, bool $should_add_placeholders = false) {
+    private function _testFallbackFromParser(string $incomplete_contents, string $valid_contents, bool $should_add_placeholders = false) {
         $supports40 = ConversionTest::hasNativeASTSupport(40);
         $supports50 = ConversionTest::hasNativeASTSupport(50);
         if (!($supports40 || $supports50)) {
             $this->fail('No supported AST versions to test');
         }
         if ($supports40) {
-            $this->_testFallbackFromParserForASTVersion($incompleteContents, $validContents, 40, $should_add_placeholders);
+            $this->_testFallbackFromParserForASTVersion($incomplete_contents, $valid_contents, 40, $should_add_placeholders);
         }
         if ($supports50) {
-            $this->_testFallbackFromParserForASTVersion($incompleteContents, $validContents, 50, $should_add_placeholders);
+            $this->_testFallbackFromParserForASTVersion($incomplete_contents, $valid_contents, 50, $should_add_placeholders);
         }
     }
 
-    private function _testFallbackFromParserForASTVersion(string $incompleteContents, string $validContents, int $astVersion, bool $should_add_placeholders) {
-        $ast = \ast\parse_code($validContents, $astVersion);
+    private function _testFallbackFromParserForASTVersion(string $incomplete_contents, string $valid_contents, int $ast_version, bool $should_add_placeholders) {
+        $ast = \ast\parse_code($valid_contents, $ast_version);
         $this->assertInstanceOf('\ast\Node', $ast, 'Examples(for validContents) must be syntactically valid PHP parseable by php-ast');
         $errors = [];
         $converter = new ASTConverter();
         $converter->setShouldAddPlaceholders($should_add_placeholders);
-        $phpParserNode = $converter->phpParserParse($incompleteContents, true, $errors);
-        $fallback_ast = $converter->phpParserToPhpAst($phpParserNode, $astVersion);
+        $php_parser_node = $converter->phpParserParse($incomplete_contents, true, $errors);
+        $fallback_ast = $converter->phpParserToPhpAst($php_parser_node, $ast_version);
         $this->assertInstanceOf('\ast\Node', $fallback_ast, 'The fallback must also return a tree of php-ast nodes');
-        $fallbackASTRepr = var_export($fallback_ast, true);
-        $originalASTRepr = var_export($ast, true);
+        $fallbackAST_repr = var_export($fallback_ast, true);
+        $originalAST_repr = var_export($ast, true);
 
-        if ($fallbackASTRepr !== $originalASTRepr) {
+        if ($fallbackAST_repr !== $originalAST_repr) {
             $dump = 'could not dump';
-            $nodeDumper = new \PhpParser\NodeDumper([
+            $node_dumper = new \PhpParser\NodeDumper([
                 'dumpComments' => true,
                 'dumpPositions' => true,
             ]);
             try {
-                $dump = $nodeDumper->dump($phpParserNode);
+                $dump = $node_dumper->dump($php_parser_node);
             } catch (\PhpParser\Error $e) {
             }
             $original_ast_dump = \ast_dump($ast);
-            // $parser_export = var_export($phpParserNode, true);
-            $this->assertSame($originalASTRepr, $fallbackASTRepr,  <<<EOT
+            // $parser_export = var_export($php_parser_node, true);
+            $this->assertSame($originalAST_repr, $fallbackAST_repr,  <<<EOT
 The fallback must return the same tree of php-ast nodes
 Code:
-$incompleteContents
+$incomplete_contents
 
 Closest Valid Code:
-$validContents
+$valid_contents
 
 Original AST:
 $original_ast_dump
