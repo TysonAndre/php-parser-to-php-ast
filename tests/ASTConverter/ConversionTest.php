@@ -102,9 +102,13 @@ class ConversionTest extends \PHPUnit\Framework\TestCase {
         $ast = ast\parse_code($contents, $astVersion, $fileName);
         self::normalizeOriginalAST($ast);
         $this->assertInstanceOf('\ast\Node', $ast, 'Examples must be syntactically valid PHP parseable by php-ast');
-        $fallback_ast = \ASTConverter\ASTConverter::ast_parse_code_fallback($contents, $astVersion);
+        try {
+            $fallback_ast = \ASTConverter\ASTConverter::ast_parse_code_fallback($contents, $astVersion);
+        } catch (\Throwable $e) {
+            throw new \RuntimeException("Error parsing $fileName with ast version $astVersion", $e->getCode(), $e);
+        }
         $this->assertInstanceOf('\ast\Node', $fallback_ast, 'The fallback must also return a tree of php-ast nodes');
-        if (stripos($fileName, 'phan_test_files') !== false) {
+        if (stripos($fileName, 'phan_test_files') !== false || stripos($fileName, 'php-src_tests') !== false) {
             $fallback_ast = self::normalizeLineNumbers($fallback_ast);
             $ast          = self::normalizeLineNumbers($ast);
         }

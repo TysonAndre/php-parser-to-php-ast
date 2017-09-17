@@ -416,7 +416,7 @@ class ASTConverter {
                 return null;
             },
             'PhpParser\Node\Expr\Exit_' => function(PhpParser\Node\Expr\Exit_ $n, int $startLine) {
-                return new ast\Node(ast\AST_EXIT, 0, ['expr' => self::_phpparser_node_to_ast_node($n->expr)], $startLine);
+                return new ast\Node(ast\AST_EXIT, 0, ['expr' => $n->expr ? self::_phpparser_node_to_ast_node($n->expr) : null], $startLine);
             },
             'PhpParser\Node\Expr\FuncCall' => function(PhpParser\Node\Expr\FuncCall $n, int $startLine) : ast\Node {
                 return self::_ast_node_call(
@@ -781,6 +781,14 @@ class ASTConverter {
                     $globalNodes[] = new ast\Node(ast\AST_GLOBAL, 0, ['var' => self::_phpparser_node_to_ast_node($var)], sl($var) ?: $startLine);
                 }
                 return \count($globalNodes) === 1 ? $globalNodes[0] : $globalNodes;
+            },
+            'PhpParser\Node\Stmt\HaltCompiler' => function(PhpParser\Node\Stmt\HaltCompiler $n, int $startLine) : ast\Node {
+                return new ast\Node(
+                    \ast\AST_HALT_COMPILER,
+                    0,
+                    ['offset' => 'TODO compute halt compiler offset'],  // FIXME implement
+                    $startLine
+                );
             },
             'PhpParser\Node\Stmt\If_' => function(PhpParser\Node\Stmt\If_ $n, int $startLine) : ast\Node {
                 return self::_phpparser_if_stmt_to_ast_if_stmt($n);
@@ -1809,7 +1817,8 @@ class ASTConverter {
             if ($item === null) {
                 $astItems[] = null;
             } else {
-                $astItems[] = new ast\Node(ast\AST_ARRAY_ELEM, 0, [
+                $flags = $item->byRef ? \ast\flags\PARAM_REF : 0;
+                $astItems[] = new ast\Node(ast\AST_ARRAY_ELEM, $flags, [
                     'value' => self::_phpparser_node_to_ast_node($item->value),
                     'key' => $item->key !== null ? self::_phpparser_node_to_ast_node($item->key) : null,
                 ], $item->getAttribute('startLine'));
@@ -1824,7 +1833,8 @@ class ASTConverter {
             if ($item === null) {
                 $astItems[] = null;
             } else {
-                $astItems[] = new ast\Node(ast\AST_ARRAY_ELEM, 0, [
+                $flags = $item->byRef ? \ast\flags\PARAM_REF : 0;
+                $astItems[] = new ast\Node(ast\AST_ARRAY_ELEM, $flags, [
                     'value' => self::_phpparser_node_to_ast_node($item->value),
                     'key' => $item->key !== null ? self::_phpparser_node_to_ast_node($item->key) : null,
                 ], $item->getAttribute('startLine'));
