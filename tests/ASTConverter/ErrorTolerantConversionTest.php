@@ -176,6 +176,51 @@ EOT;
         $this->_testFallbackFromParser($incompleteContents, $validContents);
     }
 
+    public function testMissingSemicolon() {
+        ASTConverter::set_should_add_placeholders(false);
+        $incompleteContents = <<<'EOT'
+<?php
+function foo() {
+    $y = 3
+    $x = intdiv(3, 2);
+}
+EOT;
+        $validContents = <<<'EOT'
+<?php
+function foo() {
+    $y = 3;
+    $x = intdiv(3, 2);
+}
+EOT;
+        $this->_testFallbackFromParser($incompleteContents, $validContents);
+    }
+
+// Another test (Won't work with php-parser, might work with tolerant-php-parser
+/**
+        $incompleteContents = <<<'EOT'
+<?php
+class C{
+    public function foo() {
+        $x = 3;
+
+
+    public function bar() {
+    }
+}
+EOT;
+        $validContents = <<<'EOT'
+<?php
+class C{
+    public function foo() {
+        $x = 3;
+    }
+
+    public function bar() {
+    }
+}
+EOT;
+ */
+
     private function _testFallbackFromParser(string $incompleteContents, string $validContents) {
         $supports40 = ConversionTest::hasNativeASTSupport(40);
         $supports50 = ConversionTest::hasNativeASTSupport(50);
