@@ -8,20 +8,20 @@ use ast;
 require_once __DIR__ . '/../../src/util.php';
 
 class ConversionTest extends \PHPUnit\Framework\TestCase {
-    protected function _scanSourceDirForPHP(string $sourceDir) : array {
+    protected function _scanSourceDirForPHP(string $source_dir) : array {
         $files = [];
-        foreach (new RecursiveIteratorIterator(new RecursiveDirectoryIterator($sourceDir)) as $filePath => $fileInfo) {
-            $filename = $fileInfo->getFilename();
+        foreach (new RecursiveIteratorIterator(new RecursiveDirectoryIterator($source_dir)) as $file_path => $file_info) {
+            $filename = $file_info->getFilename();
             if ($filename &&
                 !in_array($filename, ['.', '..'], true) &&
                 substr($filename, 0, 1) !== '.' &&
                 strpos($filename, '.') !== false &&
                 pathinfo($filename)['extension'] === 'php') {
-                $files[] = $filePath;
+                $files[] = $file_path;
             }
         }
         if (!$files) {
-            throw new InvalidArgumentException("No files in %s: scandir returned %s\n", [$files, $sourceDir]);
+            throw new InvalidArgumentException("No files in %s: scandir returned %s\n", [$files, $source_dir]);
         }
         return $files;
     }
@@ -29,9 +29,9 @@ class ConversionTest extends \PHPUnit\Framework\TestCase {
     /**
      * @return bool
      */
-    public static function hasNativeASTSupport(int $astVersion) {
+    public static function hasNativeASTSupport(int $ast_version) {
         try {
-            $x = ast\parse_code('', $astVersion);
+            $x = ast\parse_code('', $ast_version);
             return true;
         } catch (\LogicException $e) {
             return false;
@@ -39,12 +39,12 @@ class ConversionTest extends \PHPUnit\Framework\TestCase {
     }
 
     /**
-     * @return string[]|int[] [string $filePath, int $astVersion]
+     * @return string[]|int[] [string $file_path, int $ast_version]
      */
     public function astValidFileExampleProvider() {
         $tests = [];
-        $sourceDir = dirname(dirname(realpath(__DIR__))) . '/test_files/src';
-        $paths = $this->_scanSourceDirForPHP($sourceDir);
+        $source_dir = dirname(dirname(realpath(__DIR__))) . '/test_files/src';
+        $paths = $this->_scanSourceDirForPHP($source_dir);
         $supports40 = self::hasNativeASTSupport(40);
         $supports50 = self::hasNativeASTSupport(50);
         if (!($supports40 || $supports50)) {
@@ -94,35 +94,36 @@ class ConversionTest extends \PHPUnit\Framework\TestCase {
     }
 
     /** @dataProvider astValidFileExampleProvider */
-    public function testFallbackFromParser(string $fileName, int $astVersion) {
-        $contents = file_get_contents($fileName);
+    public function testFallbackFromParser(string $file_name, int $ast_version) {
+        $contents = file_get_contents($file_name);
         if ($contents === false) {
-            $this->fail("Failed to read $fileName");
+            $this->fail("Failed to read $file_name");
         }
-        $ast = ast\parse_code($contents, $astVersion, $fileName);
+        $ast = ast\parse_code($contents, $ast_version, $file_name);
         self::normalizeOriginalAST($ast);
         $this->assertInstanceOf('\ast\Node', $ast, 'Examples must be syntactically valid PHP parseable by php-ast');
+        $converter = new ASTConverter();
         try {
-            $fallback_ast = ASTConverter::astParseCodeFallback($contents, $astVersion);
+            $fallback_ast = $converter->parseCodeAsPHPAST($contents, $ast_version);
         } catch (\Throwable $e) {
-            throw new \RuntimeException("Error parsing $fileName with ast version $astVersion", $e->getCode(), $e);
+            throw new \RuntimeException("Error parsing $file_name with ast version $ast_version", $e->getCode(), $e);
         }
         $this->assertInstanceOf('\ast\Node', $fallback_ast, 'The fallback must also return a tree of php-ast nodes');
-        if (stripos($fileName, 'phan_test_files') !== false || stripos($fileName, 'php-src_tests') !== false) {
+        if (stripos($file_name, 'phan_test_files') !== false || stripos($file_name, 'php-src_tests') !== false) {
             $fallback_ast = self::normalizeLineNumbers($fallback_ast);
             $ast          = self::normalizeLineNumbers($ast);
         }
-        $fallbackASTRepr = var_export($fallback_ast, true);
-        $originalASTRepr = var_export($ast, true);
+        $fallback_ast_repr = var_export($fallback_ast, true);
+        $original_ast_repr = var_export($ast, true);
 
-        if ($fallbackASTRepr !== $originalASTRepr) {
-            $nodeDumper = new \PhpParser\NodeDumper([
+        if ($fallback_ast_repr !== $original_ast_repr) {
+            $node_dumper = new \PhpParser\NodeDumper([
                 'dumpComments' => true,
                 'dumpPositions' => true,
             ]);
-            $phpParserNode = ASTConverter::phpparserParse($contents);
+            $php_parser_node = ASTConverter::phpparserParse($contents);
             try {
-                $dump = $nodeDumper->dump($phpParserNode);
+                $dump = $node_dumper->dump($php_parser_node);
             } catch (\PhpParser\Error $e) {
                 $dump = 'could not dump PhpParser Node: ' . get_class($e) . ': ' . $e->getMessage() . "\n" . $e->getTraceAsString();
             }
@@ -132,10 +133,10 @@ class ConversionTest extends \PHPUnit\Framework\TestCase {
             } catch(\Throwable $e) {
                 $fallback_ast_dump = 'could not dump php-ast Node: ' . get_class($e) . ': ' . $e->getMessage() . "\n" . $e->getTraceAsString();
             }
-            $parser_export = var_export($phpParserNode, true);
-            $this->assertSame($originalASTRepr, $fallbackASTRepr,  <<<EOT
+            $parser_export = var_export($php_parser_node, true);
+            $this->assertSame($original_ast_repr, $fallback_ast_repr,  <<<EOT
 The fallback must return the same tree of php-ast nodes
-File: $fileName
+File: $file_name
 Code:
 $contents
 
