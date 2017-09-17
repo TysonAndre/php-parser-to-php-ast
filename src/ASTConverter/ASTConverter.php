@@ -49,12 +49,15 @@ use PhpParser\ParserFactory;
  * SOFTWARE.
  */
 final class ASTConverter {
+    // The release version of this class.
+    const ASTCONVERTER_VERSION = '0.1.0';
+
     // The latest stable version of php-ast.
     // For something > 50, update the library's release.
     // For something < 40, there are no releases.
     const AST_VERSION = 50;
     // The versions that this supports
-    const SUPPORTED_AST_VERSIONS = [40, 50];
+    const SUPPORTED_AST_VERSIONS = [40, 45, 50];
 
     /**
      * @var int - A version in SUPPORTED_AST_VERSIONS
@@ -1893,13 +1896,13 @@ final class ASTConverter {
             ];
             $doc_comment = self::extractPhpdocComment($declare->getAttribute('comments')) ?? $first_doc_comment;
             $first_doc_comment = null;
-            if (self::$ast_version >= 50) {
+            if (self::$ast_version >= 45) {
                 if (PHP_VERSION_ID >= 70100) {
                     $children['docComment'] = $doc_comment;
                 }
             }
             $node = new ast\Node(ast\AST_CONST_ELEM, 0, $children, $declare->getAttribute('startLine'));
-            if (self::$ast_version < 50 && is_string($doc_comment)) {
+            if (self::$ast_version < 45 && is_string($doc_comment)) {
                 if (PHP_VERSION_ID >= 70100) {
                     $node->docComment = $doc_comment;
                 }
@@ -2070,7 +2073,7 @@ final class ASTConverter {
      * @return ast\Node
      */
     private static function newAstNode(int $kind, int $flags, array $children, int $lineno, string $doc_comment = null) : ast\Node {
-        if (self::$ast_version >= 45) {
+        if (self::$ast_version >= 50) {
             if (is_string($doc_comment) || array_key_exists($kind, self::_NODES_WITH_NULL_DOC_COMMENT)) {
                 if ($kind !== \ast\AST_CONST_ELEM || PHP_VERSION_ID >= 70100) {
                     $children['docComment'] = $doc_comment;
@@ -2096,15 +2099,15 @@ final class ASTConverter {
      * @suppress PhanUndeclaredProperty
      */
     private static function newAstDecl(int $kind, int $flags, array $children, int $lineno, string $doc_comment = null, string $name = null, int $end_lineno = 0, int $decl_id = -1) : ast\Node {
-        if (self::$ast_version >= 45) {
-            $children45 = [];
-            $children45['name'] = $name;
-            $children45['docComment'] = $doc_comment;
-            $children45 += $children;
+        if (self::$ast_version >= 50) {
+            $children50 = [];
+            $children50['name'] = $name;
+            $children50['docComment'] = $doc_comment;
+            $children50 += $children;
             if ($decl_id >= 0 && self::$ast_version >= 50) {
-                $children45['__declId'] = $decl_id;
+                $children50['__declId'] = $decl_id;
             }
-            $node = new ast\Node($kind, $flags, $children45, $lineno);
+            $node = new ast\Node($kind, $flags, $children50, $lineno);
             if (is_int($end_lineno)) {
                 $node->endLineno = $end_lineno;
             }

@@ -6,7 +6,7 @@ PHP-Parser to php-ast
 This converts ASTs(Abstract Syntax Trees) from [PHP-Parser](https://github.com/nikic/PHP-Parser) to [php-ast](https://github.com/nikic/php-ast/).
 It can be used as a PHP-only implementation of php-ast.
 
-Supported [php-ast AST versions](https://github.com/nikic/php-ast#version-changelog): 40, 50
+Supported [php-ast AST versions](https://github.com/nikic/php-ast#version-changelog): 40, 45, 50
 
 Current Status
 --------------
@@ -32,12 +32,13 @@ Using it as a slow substitute for php-ast
 
 - [tests/ASTConverter/ConversionTest.php](https://github.com/TysonAndre/php-parser-to-php-ast/blob/master/tests/ASTConverter/ConversionTest.php)
 
-Using it as an error-tolerant substitute for php-ast (e.g. for use in IDEs)
+Using it as an error-tolerant substitute for php-ast: (e.g. for use in IDEs)
 
 - There are currently two modes: omitting errors and adding placeholders (e.g. `__INCOMPLETE_VARIABLE__`).
 - Omitting errors only handles some common cases that come up while editing a file.
 - Placeholders may change in the future.
 - [tests/ASTConverter/ErrorTolerantConversionTest.php](https://github.com/TysonAndre/php-parser-to-php-ast/blob/master/tests/ASTConverter/ErrorTolerantConversionTest.php)
+- If performance is an issue, cache previous results for a file's contents (in combination with the version used to generate the file `ASTConversion::ASTCONVERTER_VERSION`)
 
 Running unit tests
 ------------------

@@ -47,13 +47,17 @@ class ConversionTest extends \PHPUnit\Framework\TestCase {
         $paths = $this->_scanSourceDirForPHP($source_dir);
         sort($paths);
         $supports40 = self::hasNativeASTSupport(40);
+        $supports45 = self::hasNativeASTSupport(45);
         $supports50 = self::hasNativeASTSupport(50);
         if (!($supports40 || $supports50)) {
-            throw new RuntimeException("Neither AST version 40 nor 50 are natively supported");
+            throw new RuntimeException("None of version 40, 45 or 50 are natively supported");
         }
         foreach ($paths as $path) {
             if ($supports40) {
                 $tests[] = [$path, 40];
+            }
+            if ($supports45) {
+                $tests[] = [$path, 45];
             }
             if ($supports50) {
                 $tests[] = [$path, 50];
