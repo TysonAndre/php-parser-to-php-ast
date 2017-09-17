@@ -13,14 +13,17 @@ Current Status
 
 No tests are failing
 
-- This is 90% done
-- The test suite is not yet comprehensive.
-- Need to normalize namespaces.
+- Need to normalize namespaces (Mostly done)
 
 [Current Issues](https://github.com/TysonAndre/php-parser-to-php-ast/issues/)
 
 - The test suite this is based off of covers common cases for Phan, but edge cases still remain.
   See https://github.com/TysonAndre/php-parser-to-php-ast/issues/4
+- See https://github.com/nikic/php-ast/issues/78
+
+Remaining work:
+
+- Translate PhpParser exception to a `\ParseError` instance
 
 Usage
 -----
@@ -47,3 +50,4 @@ Possible Future Enhancements
 ----------------------------
 
 - https://github.com/Microsoft/tolerant-php-parser/issues/113
+  See https://github.com/tysonandre/tolerant-php-parser-to-php-ast (The library to convert between AST formats is broken(not finished implementing) and inefficient, waiting for stable API for tolerant-php-parser)
