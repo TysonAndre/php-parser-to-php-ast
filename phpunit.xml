@@ -1,4 +1,8 @@
-<phpunit bootstrap="tests/Bootstrap.php">
+<phpunit
+	 convertErrorsToExceptions="true"
+	 convertNoticesToExceptions="true"
+	 convertWarningsToExceptions="true"
+	>
     <testsuites>
         <testsuite name="ConverterTests">
             <directory>tests</directory>

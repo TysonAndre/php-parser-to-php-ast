@@ -2,14 +2,13 @@
     "name": "tysonandre/php-parser-to-php-ast",
     "description": "A php-parser to php-ast converter written in php. Can be used to test out projects using php-ast without compiling php-ast.",
     "prefer-stable": true,
-    "minimum-stability": "dev",
     "require": {
         "php": ">=7.1",
         "nikic/PHP-Parser": "~3.1.1"
     },
     "require-dev": {
         "phpunit/phpunit": "^5.7",
-        "etsy/phan": "0.9.4"
+        "etsy/phan": "~0.9.4"
     },
     "suggest": {
         "ext-ast": "~0.1.5"
