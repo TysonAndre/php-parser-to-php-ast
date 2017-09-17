@@ -65,7 +65,7 @@ final class ASTConverter {
     private static $ast_version = self::AST_VERSION;
 
     /**
-     * @var int - A version in SUPPORTED_AST_VERSIONS
+     * @var int - Internal counter for declarations, to generate __declId in `\ast\Node`s for declarations.
      */
     private static $decl_id = 0;
 
