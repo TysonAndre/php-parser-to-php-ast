@@ -241,7 +241,7 @@ return [
         'vendor/etsy/phan/.phan/plugins/UnreachableCodePlugin.php',  // (TODO: make BlockExitStatus more reliable)
         // NOTE: This plugin only produces correct results when
         //       Phan is run on a single core (-j1).
-        'vendor/etsy/phan/.phan/plugins/UnusedSuppressionPlugin.php',
+        // 'vendor/etsy/phan/.phan/plugins/UnusedSuppressionPlugin.php',
     ],
 
 ];

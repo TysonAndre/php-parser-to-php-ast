@@ -1921,6 +1921,7 @@ class ASTConverter {
      * NOTE: in AST version >= 45, this returns Node, but in version <=40, this returns Decl
      *
      * @return ast\Node|ast\Node\Decl
+     * @suppress PhanUndeclaredProperty
      */
     private static function _new_ast_decl(int $kind, int $flags, array $children, int $lineno, string $docComment = null, string $name = null, int $endLineno = 0, int $declId = -1) : ast\Node {
         if (self::$ast_version >= 45) {
