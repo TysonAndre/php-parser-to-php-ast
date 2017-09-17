@@ -45,6 +45,7 @@ class ConversionTest extends \PHPUnit\Framework\TestCase {
         $tests = [];
         $source_dir = dirname(dirname(realpath(__DIR__))) . '/test_files/src';
         $paths = $this->_scanSourceDirForPHP($source_dir);
+        sort($paths);
         $supports40 = self::hasNativeASTSupport(40);
         $supports50 = self::hasNativeASTSupport(50);
         if (!($supports40 || $supports50)) {
@@ -95,6 +96,10 @@ class ConversionTest extends \PHPUnit\Framework\TestCase {
 
     /** @dataProvider astValidFileExampleProvider */
     public function testFallbackFromParser(string $file_name, int $ast_version) {
+        $test_folder_name = basename(dirname($file_name));
+        if (PHP_VERSION_ID < 70100 && $test_folder_name === 'php71_or_newer') {
+            $this->markTestIncomplete('php-ast cannot parse php7.1 syntax when running in php7.0');
+        }
         $contents = file_get_contents($file_name);
         if ($contents === false) {
             $this->fail("Failed to read $file_name");
@@ -109,7 +114,8 @@ class ConversionTest extends \PHPUnit\Framework\TestCase {
             throw new \RuntimeException("Error parsing $file_name with ast version $ast_version", $e->getCode(), $e);
         }
         $this->assertInstanceOf('\ast\Node', $fallback_ast, 'The fallback must also return a tree of php-ast nodes');
-        if (stripos($file_name, 'phan_test_files') !== false || stripos($file_name, 'php-src_tests') !== false) {
+
+        if ($test_folder_name === 'phan_test_files' || $test_folder_name === 'php-src_tests') {
             $fallback_ast = self::normalizeLineNumbers($fallback_ast);
             $ast          = self::normalizeLineNumbers($ast);
         }
@@ -121,7 +127,7 @@ class ConversionTest extends \PHPUnit\Framework\TestCase {
                 'dumpComments' => true,
                 'dumpPositions' => true,
             ]);
-            $php_parser_node = ASTConverter::phpparserParse($contents);
+            $php_parser_node = $converter->phpparserParse($contents);
             try {
                 $dump = $node_dumper->dump($php_parser_node);
             } catch (\PhpParser\Error $e) {
