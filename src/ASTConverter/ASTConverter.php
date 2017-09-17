@@ -200,7 +200,16 @@ class ASTConverter {
     private static function _init_handle_map() : array {
         $closures = [
             'PhpParser\Node\Arg'                            => function(PhpParser\Node\Arg $n, int $startLine) {
-                return self::_phpparser_node_to_ast_node($n->value);
+                $result = self::_phpparser_node_to_ast_node($n->value);
+                if ($n->unpack) {
+                    return new ast\Node(
+                        \ast\AST_UNPACK,
+                        0,
+                        ['expr' => $result],
+                        $startLine
+                    );
+                }
+                return $result;
             },
             'PhpParser\Node\Expr\Array_'                    => function(PhpParser\Node\Expr\Array_ $n, int $startLine) : ast\Node {
                 return self::_phpparser_array_to_ast_array($n, $startLine);
@@ -782,6 +791,14 @@ class ASTConverter {
                 }
                 return \count($globalNodes) === 1 ? $globalNodes[0] : $globalNodes;
             },
+            'PhpParser\Node\Stmt\Goto_' => function(PhpParser\Node\Stmt\Goto_ $n, int $startLine) : ast\Node {
+                return new ast\Node(
+                    \ast\AST_GOTO,
+                    0,
+                    ['label' => $n->name],
+                    $startLine
+                );
+            },
             'PhpParser\Node\Stmt\HaltCompiler' => function(PhpParser\Node\Stmt\HaltCompiler $n, int $startLine) : ast\Node {
                 return new ast\Node(
                     \ast\AST_HALT_COMPILER,
@@ -808,6 +825,14 @@ class ASTConverter {
                     $startLine,
                     $endLine,
                     self::_extract_phpdoc_comment($n->getAttribute('comments'))
+                );
+            },
+            'PhpParser\Node\Stmt\Label' => function(PhpParser\Node\Stmt\Label $n, int $startLine) : ast\Node {
+                return new ast\Node(
+                    \ast\AST_LABEL,
+                    0,
+                    ['name' => $n->name],
+                    $startLine
                 );
             },
             'PhpParser\Node\Stmt\For_' => function(PhpParser\Node\Stmt\For_ $n, int $startLine) : ast\Node {
@@ -842,8 +867,12 @@ class ASTConverter {
                     $endLineOfWrapper = ($n->getAttribute('endLine') ?: $n->getAttribute('startLine') ?: null);
                     $withinNamespace = $n->stmts ?? [];
                     if (count($withinNamespace) > 0) {
-                        $lastStmt = end($withinNamespace);
-                        $endLineOfContents = $lastStmt->getAttribute('endLine') ?: $lastStmt->getAttribute('startLine') ?: $endLineOfWrapper;
+                        foreach ($withinNamespace as $s) {
+                            $endLineOfContents = $s->getAttribute('endLine') ?: $s->getAttribute('startLine');
+                            if ($endLineOfContents && $endLineOfContents != $endLineOfWrapper) {
+                                break;
+                            }
+                        }
                     }
                 }
 
@@ -1388,6 +1417,9 @@ class ASTConverter {
         ?string $docComment
     ) : ast\Node {
         $flags = 0;
+        if ($byRef) {
+            $flags |= \ast\flags\RETURNS_REF;
+        }
         /*
         if (PHP_VERSION_ID >= 70100 && self::_function_body_is_generator($stmts)) {
             $flags |= 0x800000;
@@ -1697,15 +1729,17 @@ class ASTConverter {
         return $ast_visibility;
     }
 
-    private static function _phpparser_property_to_ast_node(PhpParser\Node $n, int $startLine) : ast\Node {
-        assert($n instanceof \PHPParser\Node\Stmt\Property);
+    private static function _phpparser_property_to_ast_node(PHPParser\Node\Stmt\Property $n, int $startLine) : ast\Node {
 
         $propElems = [];
         $docComment = self::_extract_phpdoc_comment($n->getAttribute('comments'));
         foreach ($n->props as $i => $prop) {
             $propElems[] = self::_phpparser_propelem_to_ast_propelem($prop, $i === 0 ? $docComment : null);
         }
-        $flags = self::_phpparser_visibility_to_ast_visibility($n->flags);
+        $flags = self::_phpparser_visibility_to_ast_visibility($n->flags, false);
+        if ($flags === 0) {
+            $flags = ast\flags\MODIFIER_PUBLIC;
+        }
 
         return new ast\Node(ast\AST_PROP_DECL, $flags, $propElems, $propElems[0]->lineno ?: $startLine);
     }
@@ -1823,6 +1857,11 @@ class ASTConverter {
                     'key' => $item->key !== null ? self::_phpparser_node_to_ast_node($item->key) : null,
                 ], $item->getAttribute('startLine'));
             }
+        }
+
+        // convert list($x,) to list($x), list(,) to list(), etc.
+        if (\count($astItems) > 0 && end($astItems) === null) {
+            array_pop($astItems);
         }
         return new ast\Node(ast\AST_ARRAY, ast\flags\ARRAY_SYNTAX_LIST, $astItems, $startLine);
     }
