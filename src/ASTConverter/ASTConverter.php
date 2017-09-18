@@ -1896,13 +1896,13 @@ final class ASTConverter {
             ];
             $doc_comment = self::extractPhpdocComment($declare->getAttribute('comments')) ?? $first_doc_comment;
             $first_doc_comment = null;
-            if (self::$ast_version >= 45) {
+            if (self::$ast_version >= 50) {
                 if (PHP_VERSION_ID >= 70100) {
                     $children['docComment'] = $doc_comment;
                 }
             }
             $node = new ast\Node(ast\AST_CONST_ELEM, 0, $children, $declare->getAttribute('startLine'));
-            if (self::$ast_version < 45 && is_string($doc_comment)) {
+            if (self::$ast_version < 50 && is_string($doc_comment)) {
                 if (PHP_VERSION_ID >= 70100) {
                     $node->docComment = $doc_comment;
                 }
