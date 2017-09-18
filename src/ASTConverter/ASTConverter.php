@@ -5,6 +5,12 @@ use ast;
 use PhpParser;
 use PhpParser\ParserFactory;
 
+// If php-ast isn't loaded already, then load this file to generate equivalent
+// class, constant, and function definitions.
+if (!class_exists('\ast\Node')) {
+    require_once __DIR__ . '/../ast_shim.php';
+}
+
 /**
  * Source: https://github.com/TysonAndre/php-parser-to-php-ast
  * Uses PhpParser to create an instance of ast\Node.

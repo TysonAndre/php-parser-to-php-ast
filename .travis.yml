@@ -19,3 +19,4 @@ install:
 script:
   - vendor/bin/phan
   - ./test
+  - cd tests/test_without_ast; ./test.sh

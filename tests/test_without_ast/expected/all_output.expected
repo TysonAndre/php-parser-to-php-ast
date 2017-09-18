@@ -1,0 +1,179 @@
+ast\Node::__set_state(array(
+   'kind' => 132,
+   'flags' => 0,
+   'lineno' => 1,
+   'children' => 
+  array (
+    0 => 
+    ast\Node\Decl::__set_state(array(
+       'endLineno' => 1,
+       'name' => 'foo',
+       'docComment' => NULL,
+       'kind' => 66,
+       'flags' => 0,
+       'lineno' => 1,
+       'children' => 
+      array (
+        'params' => 
+        ast\Node::__set_state(array(
+           'kind' => 136,
+           'flags' => 0,
+           'lineno' => 1,
+           'children' => 
+          array (
+            0 => 
+            ast\Node::__set_state(array(
+               'kind' => 773,
+               'flags' => 0,
+               'lineno' => 1,
+               'children' => 
+              array (
+                'type' => 
+                ast\Node::__set_state(array(
+                   'kind' => 1,
+                   'flags' => 4,
+                   'lineno' => 1,
+                   'children' => 
+                  array (
+                  ),
+                )),
+                'name' => 'x',
+                'default' => NULL,
+              ),
+            )),
+          ),
+        )),
+        'uses' => NULL,
+        'stmts' => 
+        ast\Node::__set_state(array(
+           'kind' => 132,
+           'flags' => 0,
+           'lineno' => 1,
+           'children' => 
+          array (
+            0 => 
+            ast\Node::__set_state(array(
+               'kind' => 278,
+               'flags' => 0,
+               'lineno' => 1,
+               'children' => 
+              array (
+                'expr' => 
+                ast\Node::__set_state(array(
+                   'kind' => 520,
+                   'flags' => 3,
+                   'lineno' => 1,
+                   'children' => 
+                  array (
+                    'left' => 
+                    ast\Node::__set_state(array(
+                       'kind' => 256,
+                       'flags' => 0,
+                       'lineno' => 1,
+                       'children' => 
+                      array (
+                        'name' => 'x',
+                      ),
+                    )),
+                    'right' => 2,
+                  ),
+                )),
+              ),
+            )),
+          ),
+        )),
+        'returnType' => NULL,
+      ),
+    )),
+  ),
+))
+ast\Node::__set_state(array(
+   'kind' => 132,
+   'flags' => 0,
+   'lineno' => 1,
+   'children' => 
+  array (
+    0 => 
+    ast\Node::__set_state(array(
+       'kind' => 66,
+       'flags' => 0,
+       'lineno' => 1,
+       'children' => 
+      array (
+        'name' => 'foo',
+        'docComment' => NULL,
+        'params' => 
+        ast\Node::__set_state(array(
+           'kind' => 136,
+           'flags' => 0,
+           'lineno' => 1,
+           'children' => 
+          array (
+            0 => 
+            ast\Node::__set_state(array(
+               'kind' => 773,
+               'flags' => 0,
+               'lineno' => 1,
+               'children' => 
+              array (
+                'type' => 
+                ast\Node::__set_state(array(
+                   'kind' => 1,
+                   'flags' => 4,
+                   'lineno' => 1,
+                   'children' => 
+                  array (
+                  ),
+                )),
+                'name' => 'x',
+                'default' => NULL,
+              ),
+            )),
+          ),
+        )),
+        'uses' => NULL,
+        'stmts' => 
+        ast\Node::__set_state(array(
+           'kind' => 132,
+           'flags' => 0,
+           'lineno' => 1,
+           'children' => 
+          array (
+            0 => 
+            ast\Node::__set_state(array(
+               'kind' => 278,
+               'flags' => 0,
+               'lineno' => 1,
+               'children' => 
+              array (
+                'expr' => 
+                ast\Node::__set_state(array(
+                   'kind' => 520,
+                   'flags' => 3,
+                   'lineno' => 1,
+                   'children' => 
+                  array (
+                    'left' => 
+                    ast\Node::__set_state(array(
+                       'kind' => 256,
+                       'flags' => 0,
+                       'lineno' => 1,
+                       'children' => 
+                      array (
+                        'name' => 'x',
+                      ),
+                    )),
+                    'right' => 2,
+                  ),
+                )),
+              ),
+            )),
+          ),
+        )),
+        'returnType' => NULL,
+        '__declId' => 0,
+      ),
+       'endLineno' => 1,
+    )),
+  ),
+))
