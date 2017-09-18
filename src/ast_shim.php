@@ -239,6 +239,7 @@ class Node
     /**
      * A constructor which validates data types but not the values themselves.
      * For backwards compatibility reasons, all values are optional and properties default to null
+     * @suppress PhanTypeMismatchProperty
      */
     public function __construct(int $kind = null, int $flags = null, array $children = null, int $lineno = null) {
         $this->kind = $kind;
