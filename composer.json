@@ -1,7 +1,14 @@
 {
     "name": "tysonandre/php-parser-to-php-ast",
-    "description": "A php-parser to php-ast converter written in php. Can be used to test out projects using php-ast without compiling php-ast.",
-    "prefer-stable": true,
+    "description": "A pure PHP substitute for nikic/php-ast, using nikic/php-parser. Can also be used to generate php-ast trees, even for files with some types of syntax errors.",
+    "keywords": ["php", "ast", "parser"],
+    "type": "library",
+    "license": "MIT",
+    "authors": [
+        {
+            "name": "Tyson Andre"
+        }
+    ],
     "require": {
         "php": ">=7.1",
         "nikic/PHP-Parser": "~3.1.1"
