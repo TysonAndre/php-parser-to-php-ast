@@ -1,8 +1,12 @@
 <?php declare(strict_types = 1);
+
 namespace ASTConverter\Tests;
+
 use ASTConverter\ASTConverter;
 use RecursiveDirectoryIterator;
 use RecursiveIteratorIterator;
+use RuntimeException;
+
 use ast;
 
 require_once __DIR__ . '/../../src/util.php';
@@ -20,8 +24,8 @@ class ConversionTest extends \PHPUnit\Framework\TestCase {
                 $files[] = $file_path;
             }
         }
-        if (!$files) {
-            throw new InvalidArgumentException("No files in %s: scandir returned %s\n", [$files, $source_dir]);
+        if (count($files) === 0) {
+            throw new \InvalidArgumentException(sprintf("No files in %s: RecursiveDirectoryIterator iteration returned %s\n", $files, $sourceDir));
         }
         return $files;
     }
@@ -115,7 +119,7 @@ class ConversionTest extends \PHPUnit\Framework\TestCase {
         try {
             $fallback_ast = $converter->parseCodeAsPHPAST($contents, $ast_version);
         } catch (\Throwable $e) {
-            throw new \RuntimeException("Error parsing $file_name with ast version $ast_version", $e->getCode(), $e);
+            throw new RuntimeException("Error parsing $file_name with ast version $ast_version", $e->getCode(), $e);
         }
         $this->assertInstanceOf('\ast\Node', $fallback_ast, 'The fallback must also return a tree of php-ast nodes');
 

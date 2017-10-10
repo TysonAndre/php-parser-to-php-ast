@@ -15,6 +15,7 @@ if (!class_exists('\ast\Node')) {
  * Source: https://github.com/TysonAndre/php-parser-to-php-ast
  * Uses PhpParser to create an instance of ast\Node.
  * Useful if the php-ast extension isn't actually installed.
+ * @author Tyson Andre
  *
  * This is implemented as a collection of static methods for performance,
  * but functionality is provided through instance methods.

@@ -1,7 +1,7 @@
 PHP-Parser to php-ast
 =====================
 
-[![Build Status](https://travis-ci.org/TysonAndre/php-parser-to-php-ast.svg?branch=master)](https://travis-ci.org/TysonAndre/php-parser-to-php-ast)
+[![Build Status](https://travis-ci.org/TysonAndre/php-parser-to-php-ast.svg?branch=master)](https://travis-ci.org/TysonAndre/php-parser-to-php-ast) [![Build status (Windows)](https://ci.appveyor.com/api/projects/status/41h7apxmvmkec1rj?svg=true)](https://ci.appveyor.com/project/TysonAndre/php-parser-to-php-ast)
 
 This converts ASTs(Abstract Syntax Trees) from [PHP-Parser](https://github.com/nikic/PHP-Parser) to [php-ast](https://github.com/nikic/php-ast/).
 It can be used as a PHP-only implementation of php-ast. It can alternatively be used as a best-effort parser for syntactically valid PHP code.

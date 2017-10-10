@@ -207,12 +207,16 @@ EOT;
 
     private function _testFallbackFromParser(string $incomplete_contents, string $valid_contents, bool $should_add_placeholders = false) {
         $supports40 = ConversionTest::hasNativeASTSupport(40);
+        $supports45 = ConversionTest::hasNativeASTSupport(45);
         $supports50 = ConversionTest::hasNativeASTSupport(50);
-        if (!($supports40 || $supports50)) {
+        if (!($supports40 || $supports45 || $supports50)) {
             $this->fail('No supported AST versions to test');
         }
         if ($supports40) {
             $this->_testFallbackFromParserForASTVersion($incomplete_contents, $valid_contents, 40, $should_add_placeholders);
+        }
+        if ($supports45) {
+            $this->_testFallbackFromParserForASTVersion($incomplete_contents, $valid_contents, 45, $should_add_placeholders);
         }
         if ($supports50) {
             $this->_testFallbackFromParserForASTVersion($incomplete_contents, $valid_contents, 50, $should_add_placeholders);
@@ -228,10 +232,10 @@ EOT;
         $php_parser_node = $converter->phpParserParse($incomplete_contents, true, $errors);
         $fallback_ast = $converter->phpParserToPhpAst($php_parser_node, $ast_version);
         $this->assertInstanceOf('\ast\Node', $fallback_ast, 'The fallback must also return a tree of php-ast nodes');
-        $fallbackAST_repr = var_export($fallback_ast, true);
-        $originalAST_repr = var_export($ast, true);
+        $fallback_ast_repr = var_export($fallback_ast, true);
+        $original_ast_repr = var_export($ast, true);
 
-        if ($fallbackAST_repr !== $originalAST_repr) {
+        if ($fallback_ast_repr !== $original_ast_repr) {
             $dump = 'could not dump';
             $node_dumper = new \PhpParser\NodeDumper([
                 'dumpComments' => true,
@@ -243,7 +247,7 @@ EOT;
             }
             $original_ast_dump = \ast_dump($ast);
             // $parser_export = var_export($php_parser_node, true);
-            $this->assertSame($originalAST_repr, $fallbackAST_repr,  <<<EOT
+            $this->assertSame($original_ast_repr, $fallback_ast_repr,  <<<EOT
 The fallback must return the same tree of php-ast nodes
 Code:
 $incomplete_contents

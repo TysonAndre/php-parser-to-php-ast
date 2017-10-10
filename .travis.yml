@@ -10,7 +10,8 @@ cache:
     - $HOME/.composer/cache
 
 before_install:
-  - ./tests/setup.sh
+  - pecl install -f ast-0.1.6
+  - phpenv config-rm xdebug.ini
   - composer validate
 
 install:
