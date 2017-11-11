@@ -197,10 +197,14 @@ return [
     // A list of plugin files to execute
     'plugins' => [
         // NOTE: src/Phan/Language/Internal/FunctionSignatureMap.php mixes value without key as return type with values having keys deliberately.
-        'vendor/phan/phan/.phan/plugins/AlwaysReturnPlugin.php',  // (TODO: make BlockExitStatus more reliable)
-        'vendor/phan/phan/.phan/plugins/DollarDollarPlugin.php',
-        'vendor/phan/phan/.phan/plugins/DuplicateArrayKeyPlugin.php',
-        'vendor/phan/phan/.phan/plugins/UnreachableCodePlugin.php',  // (TODO: make BlockExitStatus more reliable)
+        'AlwaysReturnPlugin',
+        'DemoPlugin',
+        'DollarDollarPlugin',
+        'UnreachableCodePlugin',
+        // NOTE: src/Phan/Language/Internal/FunctionSignatureMap.php mixes value without keys (as return type) with values having keys deliberately.
+        'DuplicateArrayKeyPlugin',
+        'PregRegexCheckerPlugin',
+        'PrintfCheckerPlugin',
         // NOTE: This plugin only produces correct results when
         //       Phan is run on a single core (-j1).
         // 'vendor/phan/phan/.phan/plugins/UnusedSuppressionPlugin.php',
