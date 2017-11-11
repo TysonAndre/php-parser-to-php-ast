@@ -85,6 +85,9 @@ final class ASTConverter {
     /** @var int */
     private $instance_phpparser_preferred_version = ParserFactory::ONLY_PHP7;
 
+    /** @var ?string */
+    private static $file_contents = null;
+
     // No-op.
     public function __construct() { }
 
@@ -100,10 +103,15 @@ final class ASTConverter {
      */
     public function parseCodeAsPHPAST(string $source, int $ast_version, bool $suppress_errors = false, array &$errors = null) {
         if (!\in_array($ast_version, self::SUPPORTED_AST_VERSIONS)) {
-            throw new \InvalidArgumentException(sprintf("Unexpected version: want %s, got %d", implode(', ', self::SUPPORTED_AST_VERSIONS), $ast_version));
+            throw new \InvalidArgumentException(\sprintf("Unexpected version: want %s, got %d", implode(', ', self::SUPPORTED_AST_VERSIONS), $ast_version));
         }
-        $parser_node = $this->phpParserParse($source, $suppress_errors, $errors);
-        return self::phpParserToPhpast($parser_node, $ast_version);
+        self::$file_contents = $source;
+        try {
+            $parser_node = $this->phpParserParse($source, $suppress_errors, $errors);
+            return self::phpParserToPhpast($parser_node, $ast_version);
+        } finally {
+            self::$file_contents = null;
+        }
     }
 
     /**
@@ -598,7 +606,9 @@ final class ASTConverter {
                 if (\count($parts) === 1 && $parts[0] instanceof PhpParser\Node\Scalar\EncapsedStringPart) {
                     $value = $parts[0]->value;
                 } else {
-                    $value_inner = array_map(function(PhpParser\Node $node) { return self::phpParserNodeToAstNode($node); }, $parts);
+                    $value_inner = array_map(function(PhpParser\Node $node) {
+                        return self::phpParserNodeToAstNode($node);
+                    }, $parts);
                     $value = new ast\Node(ast\AST_ENCAPS_LIST, 0, $value_inner, $start_line);
                 }
                 return new ast\Node(ast\AST_SHELL_EXEC, 0, ['expr' => $value], $start_line);
@@ -698,10 +708,19 @@ final class ASTConverter {
                 );
             },
             'PhpParser\Node\Scalar\Encapsed' => function(PhpParser\Node\Scalar\Encapsed $n, int $start_line) : ast\Node {
+                $value_inner = \array_map(function(PhpParser\Node $n) {
+                    return self::phpParserNodeToAstNode($n);
+                }, $n->parts);
+
+                if ($n->getAttribute('kind') === PhpParser\Node\Scalar\String_::KIND_HEREDOC) {
+                    // Reproduce quirk of php-ast
+                    $value_inner[] = '';
+                }
+
                 return new ast\Node(
                     ast\AST_ENCAPS_LIST,
                     0,
-                    array_map(function(PhpParser\Node $n) { return self::phpParserNodeToAstNode($n); }, $n->parts),
+                    $value_inner,
                     $start_line
                 );
             },
@@ -892,10 +911,38 @@ final class ASTConverter {
                 );
             },
             'PhpParser\Node\Stmt\HaltCompiler' => function(PhpParser\Node\Stmt\HaltCompiler $n, int $start_line) : ast\Node {
+                $source = self::$file_contents;
+                $offset = 'TODO compute halt compiler offset';
+                $computed_offset = 0;
+                if (\is_string($source)) {
+                    $all_tokens = \token_get_all($source);
+                    foreach ($all_tokens as $i => $token) {
+                        if (\is_array($token)) {
+                            if ($token[0] === T_HALT_COMPILER) {
+                                $j = $i;
+                                do {
+                                    $cur_token = $all_tokens[$j++] ?? null;
+                                    if ($cur_token === null) {
+                                        break;
+                                    }
+                                    if (\is_array($cur_token)) {
+                                        $cur_token = $cur_token[1];
+                                    }
+                                    $computed_offset += \strlen($cur_token);
+                                } while ($cur_token !== ';');
+                                $offset = $computed_offset;
+                                break;
+                            }
+                            $computed_offset += \strlen($token[1]);
+                        } else {
+                            $computed_offset += \strlen($token);
+                        }
+                    }
+                }
                 return new ast\Node(
                     \ast\AST_HALT_COMPILER,
                     0,
-                    ['offset' => 'TODO compute halt compiler offset'],  // FIXME implement
+                    ['offset' => $offset],  // FIXME implement
                     $start_line
                 );
             },
