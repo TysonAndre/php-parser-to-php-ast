@@ -49,7 +49,11 @@ class ConversionTest extends \PHPUnit\Framework\TestCase {
         $tests = [];
         $source_dir = dirname(dirname(realpath(__DIR__))) . '/test_files/src';
         $paths = $this->_scanSourceDirForPHP($source_dir);
-        sort($paths);
+        $counts = [];
+        foreach ($paths as $path) {
+            $counts[$path] = \count(\token_get_all(\file_get_contents($path)));
+        }
+        usort($paths, function($a, $b) use ($counts) { return $counts[$a] <=> $counts[$b]; });
         $supports40 = self::hasNativeASTSupport(40);
         $supports45 = self::hasNativeASTSupport(45);
         $supports50 = self::hasNativeASTSupport(50);
@@ -104,6 +108,9 @@ class ConversionTest extends \PHPUnit\Framework\TestCase {
 
     /** @dataProvider astValidFileExampleProvider */
     public function testFallbackFromParser(string $file_name, int $ast_version) {
+        if ($ast_version === 40) {
+            file_put_contents('/tmp/files', "$file_name\n", FILE_APPEND);
+        }
         $test_folder_name = basename(dirname($file_name));
         if (PHP_VERSION_ID < 70100 && $test_folder_name === 'php71_or_newer') {
             $this->markTestIncomplete('php-ast cannot parse php7.1 syntax when running in php7.0');
@@ -123,7 +130,7 @@ class ConversionTest extends \PHPUnit\Framework\TestCase {
         }
         $this->assertInstanceOf('\ast\Node', $fallback_ast, 'The fallback must also return a tree of php-ast nodes');
 
-        if ($test_folder_name === 'phan_test_files' || $test_folder_name === 'php-src_tests') {
+        if ($test_folder_name === 'phan_test_files' || $test_folder_name === 'php-src_tests' || $test_folder_name === 'php-src_tests2') {
             $fallback_ast = self::normalizeLineNumbers($fallback_ast);
             $ast          = self::normalizeLineNumbers($ast);
         }
