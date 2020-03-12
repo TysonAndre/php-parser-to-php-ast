@@ -27,6 +27,7 @@ build_script:
     SET PHP_ZIP_BASENAME=php-7.1.33-nts-Win32-VC14-x86.zip
 
     SET PHP_AST_VERSION=0.1.6
+
     SET AST_ZIP_BASENAME=php_ast-%PHP_AST_VERSION%-7.1-nts-vc14-x86.zip
 
     curl -fsS https://windows.php.net/downloads/releases/archives/%PHP_ZIP_BASENAME% -o %PHP_ZIP_BASENAME% || curl -fsS https://windows.php.net/downloads/releases/%PHP_ZIP_BASENAME% -o %PHP_ZIP_BASENAME%
