@@ -37,8 +37,6 @@ build_script:
 
     cd C:\projects\php\ext
 
-    git clone --depth=1 --branch=master https://github.com/nikic/php-ast C:\projects\php-src\ext\ast
-
     curl -fsS https://windows.php.net/downloads/pecl/releases/ast/%PHP_AST_VERSION%/%AST_ZIP_BASENAME% -o %AST_ZIP_BASENAME%
 
     7z x %AST_ZIP_BASENAME% php_ast.dll -y >nul
