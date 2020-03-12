@@ -212,7 +212,6 @@ const ARRAY_SYNTAX_SHORT = 3;
 // END AST FLAG CONSTANTS
 
 namespace ast;
-use ASTConverter\ASTConverter;
 
 if (!class_exists('\ast\Node')) {
 /**
@@ -255,7 +254,7 @@ namespace ast\Node;
 if (!class_exists('\ast\Node\Decl')) {
 /**
  * AST Node type for function and class declarations.
- * @suppress PhanRedefineClassInternal
+ * @suppress PhanRedefineClassInternal, PhanRedefinedExtendedClass
  */
 class Decl extends \ast\Node
 {

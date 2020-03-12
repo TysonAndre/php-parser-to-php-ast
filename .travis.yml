@@ -18,6 +18,6 @@ install:
   - composer --ignore-platform-reqs --prefer-dist install
 
 script:
-  - vendor/bin/phan
+  # - vendor/bin/phan # Too new to use with ast 0.1.6
   - ./test
   - cd tests/test_without_ast; ./test.sh
