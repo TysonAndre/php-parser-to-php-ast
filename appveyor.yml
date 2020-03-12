@@ -75,6 +75,6 @@ test_script:
 - cmd: cd C:\projects\php-parser-to-php-ast
 - cmd: php composer.phar install
 # Analyze the project with phan, will error if 1 or more issues are detected
-- cmd: .\vendor\bin\phan
+#- cmd: .\vendor\bin\phan # requires newer php-ast
 # Run the remaining tests of this project
 - cmd: .\vendor\bin\phpunit --verbose
