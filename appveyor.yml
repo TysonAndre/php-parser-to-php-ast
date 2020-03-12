@@ -31,7 +31,7 @@ build_script:
 
     curl -fsS https://windows.php.net/downloads/releases/archives/%PHP_ZIP_BASENAME% -o %PHP_ZIP_BASENAME% || curl -fsS https://windows.php.net/downloads/releases/%PHP_ZIP_BASENAME% -o %PHP_ZIP_BASENAME%
 
-    7z x -y %PHP_ZIP_BASENAME
+    7z x -y %PHP_ZIP_BASENAME%
 
     del /Q *.zip
 
